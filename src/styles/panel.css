@@ -410,6 +410,147 @@
 .panel-card.card--mini .card-title  { font-size: 0.82rem; line-height: 1.25; }
 
 /* ================================================
+   Setup phase guide card
+   Shown instead of cards during Setup to explain
+   the framing step and provide a big CTA button.
+   ================================================ */
+
+.panel-setup-guide {
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  animation: panelCardIn 0.3s ease both;
+}
+
+.panel-setup-icon {
+  font-size: 2.2rem;
+  color: var(--color-blue);
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.panel-setup-heading {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.panel-setup-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.panel-setup-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--color-border);
+}
+
+.panel-setup-step-num {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-blue);
+  color: white;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.panel-setup-step-text {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+}
+
+.panel-setup-next {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 22px;
+  background: var(--color-blue);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.28);
+  margin-top: 4px;
+}
+
+.panel-setup-next:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(59, 130, 246, 0.38);
+}
+
+/* ================================================
+   Actions bar (Random Draw + Create Custom)
+   Shown at TOP of card list, above library cards.
+   ================================================ */
+
+.panel-actions-bar {
+  display: flex;
+  gap: 8px;
+  padding: 0 0 4px;
+  grid-column: 1 / -1;
+}
+
+.panel-action-btn {
+  flex: 1;
+  height: 46px;
+  border-radius: 12px;
+  border: 1.5px dashed rgba(214, 211, 209, 0.95);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.panel-action-btn:hover {
+  background: white;
+  border-color: var(--panel-phase-color, var(--color-blue));
+  border-style: solid;
+  color: var(--panel-phase-color, var(--color-blue));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(28, 25, 23, 0.08);
+}
+
+.panel-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ================================================
    Phase action button (prominent CTA in tray)
    ================================================ */
 

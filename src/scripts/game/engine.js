@@ -232,7 +232,12 @@ export function initGame(roomCode, options = {}) {
   document.getElementById('connect-mode-btn')?.addEventListener('click', toggleConnectMode);
   document.getElementById('tidy-board-btn')?.addEventListener('click', tidyBoard);
 
-  nextPhaseBtn?.addEventListener('click', () => phases.nextPhase());
+  nextPhaseBtn?.addEventListener('click', () => {
+    if (phases.nextPhase()) {
+      // Show announcement ONLY on explicit user action — not during load/restore
+      showPhaseAnnouncement(phases.getCurrentPhase(), phases.getPhaseIndex());
+    }
+  });
   prevPhaseBtn?.addEventListener('click', () => phases.prevPhase());
 
   function updateZoomDisplay() {
@@ -1020,14 +1025,17 @@ export function initGame(roomCode, options = {}) {
       if (index >= PHASES.length - 1) {
         nextPhaseBtn.textContent = 'Game Complete';
         nextPhaseBtn.disabled = true;
+        nextPhaseBtn.classList.remove('is-pulsing');
       } else {
         nextPhaseBtn.textContent = `Next: ${PHASES[index + 1].label} →`;
         nextPhaseBtn.disabled = false;
+        // Pulse the button only during Setup so players know it's the key action
+        nextPhaseBtn.classList.toggle('is-pulsing', index === 0);
       }
     }
-
-    // Phase announcement overlay — replaces the old colour-flash with a full-screen card
-    showPhaseAnnouncement(phase, index);
+    // NOTE: showPhaseAnnouncement is intentionally NOT called here.
+    // It is called explicitly from the Next Phase button click handler
+    // (and from the setup guide CTA) to avoid firing during state restoration.
   }
 
   function showPhaseAnnouncement(phase, index) {
@@ -1113,17 +1121,69 @@ export function initGame(roomCode, options = {}) {
 
     if (allowedPanelTypes.length === 0) {
       clearPanelCards();
-      const emptyState = document.createElement('div');
-      emptyState.className = 'panel-empty-state';
-      emptyState.textContent = phases.getCurrentPhase().id === 'setup'
-        ? 'Click the blue start and end cards on the board to set the challenge and the future you want.'
-        : 'Reflection is for review. Use the notebook tab to capture conclusions and export the session.';
-      panelCards.appendChild(emptyState);
-      updatePanelCount(
-        phases.getCurrentPhase().id === 'setup'
-          ? 'Start by framing the two anchor cards on the board.'
-          : 'Review mode: use the notebook instead of adding cards.'
-      );
+      const phaseId = phases.getCurrentPhase().id;
+
+      if (phaseId === 'setup') {
+        // Setup guide: numbered steps + big CTA button
+        const guide = document.createElement('div');
+        guide.className = 'panel-setup-guide';
+
+        const icon = document.createElement('div');
+        icon.className = 'panel-setup-icon';
+        icon.textContent = '◈';
+        guide.appendChild(icon);
+
+        const heading = document.createElement('div');
+        heading.className = 'panel-setup-heading';
+        heading.textContent = 'Frame the future';
+        guide.appendChild(heading);
+
+        const steps = document.createElement('div');
+        steps.className = 'panel-setup-steps';
+
+        [
+          'Click the blue START card on the board and describe the challenge you face right now.',
+          'Click the blue END card and describe the future you want to reach in 5–10 years.',
+          'When the group agrees on the framing, click below to start building your pathway.',
+        ].forEach((text, i) => {
+          const step = document.createElement('div');
+          step.className = 'panel-setup-step';
+
+          const num = document.createElement('div');
+          num.className = 'panel-setup-step-num';
+          num.textContent = String(i + 1);
+          step.appendChild(num);
+
+          const stepText = document.createElement('div');
+          stepText.className = 'panel-setup-step-text';
+          stepText.textContent = text;
+          step.appendChild(stepText);
+
+          steps.appendChild(step);
+        });
+        guide.appendChild(steps);
+
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'panel-setup-next';
+        nextBtn.type = 'button';
+        nextBtn.textContent = 'Start Planning →';
+        nextBtn.addEventListener('click', () => {
+          if (phases.nextPhase()) {
+            showPhaseAnnouncement(phases.getCurrentPhase(), phases.getPhaseIndex());
+          }
+        });
+        guide.appendChild(nextBtn);
+
+        panelCards.appendChild(guide);
+        updatePanelCount('Edit the anchor cards, then advance when ready');
+      } else {
+        // Reflection or other locked phase
+        const emptyState = document.createElement('div');
+        emptyState.className = 'panel-empty-state';
+        emptyState.textContent = 'Reflection is for review. Use the Notebook tab to capture conclusions and export the session.';
+        panelCards.appendChild(emptyState);
+        updatePanelCount('Review mode — use the notebook.');
+      }
       return;
     }
 
@@ -1145,41 +1205,38 @@ export function initGame(roomCode, options = {}) {
     const phaseId = phases.getCurrentPhase().id;
     const activeParticipant = getActiveParticipant();
 
+    // ---- Actions bar (Random Draw + Create Custom) — always at the TOP ----
+    const actionsBar = document.createElement('div');
+    actionsBar.className = 'panel-actions-bar';
+
+    // "Draw random" — only shown when actively in the matching phase
     if (phaseId === type && ['curveball', 'ripple'].includes(type)) {
       const dealBtn = document.createElement('button');
-      dealBtn.className = 'panel-phase-action';
+      dealBtn.className = 'panel-action-btn';
       dealBtn.type = 'button';
-      dealBtn.textContent = type === 'curveball' ? 'Draw a Random Curveball' : 'Draw a Random Ripple';
+      const dealIcon = type === 'curveball' ? '🎲' : '🌱';
       dealBtn.disabled = activeParticipant?.role !== 'host';
-      if (dealBtn.disabled) {
-        dealBtn.textContent = 'Host Draw Only';
-      }
+      dealBtn.textContent = dealBtn.disabled ? 'Host only' : `${dealIcon} Random`;
+      dealBtn.title = dealBtn.disabled
+        ? 'Only the session host can draw random cards'
+        : `Deal a random ${type} card onto the board`;
       dealBtn.addEventListener('click', () => {
         const randomCard = cards[Math.floor(Math.random() * cards.length)];
         const placedCardId = quickPlaceCard(randomCard);
-        if (placedCardId) {
-          setSelectedCard(placedCardId);
-        }
+        if (placedCardId) setSelectedCard(placedCardId);
       });
-      panelCards.appendChild(dealBtn);
+      actionsBar.appendChild(dealBtn);
     }
 
-    cards.forEach((cardData) => {
-      const panelCard = createPanelCard(cardData);
-      panelCard.addEventListener('pointerdown', (event) => {
-        drag.startPanelDrag(event, panelCard, cardData);
-      });
-      panelCards.appendChild(panelCard);
-    });
-
+    // "Create custom" — always shown
     const createBtn = document.createElement('button');
-    createBtn.className = 'panel-create-btn';
+    createBtn.className = 'panel-action-btn';
     createBtn.type = 'button';
-    createBtn.textContent = `+ Create Custom ${type.charAt(0).toUpperCase()}${type.slice(1)}`;
+    createBtn.textContent = '+ Custom';
+    createBtn.title = `Create a custom ${type} card`;
     createBtn.addEventListener('click', () => {
       const title = prompt('Card title:');
       if (!title) return;
-
       const description = prompt('Description (optional):') || '';
       const customCard = {
         type,
@@ -1192,9 +1249,21 @@ export function initGame(roomCode, options = {}) {
       panelCard.addEventListener('pointerdown', (event) => {
         drag.startPanelDrag(event, panelCard, customCard);
       });
-      panelCards.insertBefore(panelCard, createBtn);
+      // Insert new custom card right after the actions bar (before library cards)
+      panelCards.insertBefore(panelCard, actionsBar.nextSibling);
     });
-    panelCards.appendChild(createBtn);
+    actionsBar.appendChild(createBtn);
+
+    panelCards.appendChild(actionsBar);
+
+    // ---- Library cards ----
+    cards.forEach((cardData) => {
+      const panelCard = createPanelCard(cardData);
+      panelCard.addEventListener('pointerdown', (event) => {
+        drag.startPanelDrag(event, panelCard, cardData);
+      });
+      panelCards.appendChild(panelCard);
+    });
 
     updatePanelCount(`${cards.length} ${type} cards available`);
   }

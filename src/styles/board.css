@@ -659,6 +659,16 @@
   background: radial-gradient(circle at center, rgba(30, 64, 175, 0.1), transparent 70%);
 }
 
+/* ---- Next Phase button pulse (draws attention in Setup phase) ---- */
+@keyframes nextPhasePulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2); transform: none; }
+  50%       { box-shadow: 0 6px 22px rgba(59, 130, 246, 0.45), 0 0 0 5px rgba(59, 130, 246, 0.1); transform: translateY(-1px); }
+}
+
+.topbar-btn.primary.is-pulsing {
+  animation: nextPhasePulse 2.5s ease-in-out infinite;
+}
+
 /* ---- Tidy Board animation ---- */
 /* Applied briefly while relayoutBoard() repositions cards for a smooth sweep */
 .board-card.is-tidying {
