@@ -628,7 +628,7 @@
   max-width: 320px;
 }
 
-/* ---- Phase transition flash ---- */
+/* ---- Phase transition flash (legacy fallback) ---- */
 .phase-transition-flash {
   position: fixed;
   inset: 0;
@@ -657,6 +657,155 @@
 
 .phase-transition-flash--reflection {
   background: radial-gradient(circle at center, rgba(30, 64, 175, 0.1), transparent 70%);
+}
+
+/* ---- Tidy Board animation ---- */
+/* Applied briefly while relayoutBoard() repositions cards for a smooth sweep */
+.board-card.is-tidying {
+  transition:
+    left 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+    top  0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.2s ease;
+}
+
+/* ---- Phase Announcement Overlay ---- */
+/* Full-screen card revealed at every phase transition with facilitation prompt */
+.phase-announcement {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 12, 10, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: announceBackdropIn 0.25s ease both;
+}
+
+.phase-announcement[hidden] { display: none; }
+
+@keyframes announceBackdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.phase-announcement-card {
+  background: var(--color-surface);
+  border-radius: 28px;
+  padding: 44px 52px;
+  max-width: 560px;
+  width: 90%;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.32), 0 8px 24px rgba(0,0,0,0.14);
+  animation: announceCardIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both 0.06s;
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes announceCardIn {
+  from { opacity: 0; transform: scale(0.86) translateY(24px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);    }
+}
+
+.phase-announcement-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 6px;
+  background: var(--announce-color, var(--color-blue));
+}
+
+.phase-announcement-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--announce-color, var(--color-blue));
+  margin-bottom: 10px;
+}
+
+.phase-announcement-title {
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-weight: 900;
+  color: var(--color-text);
+  line-height: 1.05;
+  margin-bottom: 10px;
+}
+
+.phase-announcement-desc {
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  margin-bottom: 24px;
+}
+
+.phase-announcement-prompt {
+  background: var(--announce-bg,     rgba(59, 130, 246, 0.06));
+  border:     1px solid var(--announce-border, rgba(59, 130, 246, 0.2));
+  border-radius: 14px;
+  padding: 18px 22px;
+  margin-bottom: 28px;
+}
+
+.phase-announcement-prompt-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--announce-color, var(--color-blue));
+  margin-bottom: 8px;
+}
+
+.phase-announcement-prompt-text {
+  font-size: 0.95rem;
+  color: var(--color-text);
+  line-height: 1.55;
+  font-style: italic;
+}
+
+.phase-announcement-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.phase-announcement-hint {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.phase-announcement-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 30px;
+  background: var(--announce-color, var(--color-blue));
+  color: white;
+  border: none;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.phase-announcement-go:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.24);
+}
+
+.phase-announcement-go:active {
+  transform: translateY(0);
 }
 
 /* ---- Responsive ---- */

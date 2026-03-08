@@ -4,6 +4,10 @@ import GameLayout from '../layouts/GameLayout.astro';
 
 <GameLayout title="Game">
   <div id="game-container">
+
+    <!-- Phase announcement overlay — populated and shown by JS on every phase transition -->
+    <div id="phase-announcement" class="phase-announcement" hidden></div>
+
     <header id="game-topbar">
       <div class="topbar-left">
         <a href="/" class="topbar-logo">
@@ -29,6 +33,7 @@ import GameLayout from '../layouts/GameLayout.astro';
         <div class="players-indicator" title="Current player">
           <div class="player-avatar" id="player-avatar">P</div>
         </div>
+        <button id="tidy-board-btn" class="topbar-btn" type="button" title="Snap all cards back into the standard timeline layout">↕ Tidy Board</button>
         <button id="connect-mode-btn" class="topbar-btn connect-btn" type="button" title="Click two cards to draw a connection between them">⤴ Link Cards</button>
         <button id="prev-phase-btn" class="topbar-btn" type="button" style="display: none;">← Previous</button>
         <button id="next-phase-btn" class="topbar-btn primary" type="button">Next: Planning →</button>
@@ -58,6 +63,12 @@ import GameLayout from '../layouts/GameLayout.astro';
         <div class="panel-kicker" id="panel-phase-status">Current Move</div>
         <div class="panel-title" id="panel-title">Card Tray</div>
         <p class="panel-copy" id="panel-copy">Click a card to place it, or drag it onto the table.</p>
+
+        <!-- Facilitation prompt — updated by JS on phase/selection changes -->
+        <div id="panel-faci-prompt" class="panel-faci-prompt" hidden>
+          <div class="panel-faci-label">Ask the group</div>
+          <div class="panel-faci-text" id="panel-faci-text"></div>
+        </div>
 
         <div class="panel-mode-tabs" role="tablist" aria-label="Panel modes">
           <button class="panel-mode-tab active" type="button" data-panel-mode="cards">Cards</button>

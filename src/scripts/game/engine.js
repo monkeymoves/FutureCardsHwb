@@ -38,6 +38,16 @@ const CARD_NOTE_PROMPTS = {
   ripple: 'What should people monitor or discuss because of this effect?',
 };
 
+// Discussion questions the facilitator reads aloud at the start of each phase.
+// Separate from PHASE_NOTE_PROMPTS (those are for the written notebook).
+const PHASE_FACILITATION_PROMPTS = {
+  setup:      'What is the real challenge you face right now? And what would a genuinely successful outcome look like in 5–10 years?',
+  planning:   'If you had full control, what are the most important moves to make? Challenge each other — is every step really necessary?',
+  curveball:  'What could go wrong? What disruptions or shocks could completely derail this plan?',
+  ripple:     'If all this happened, what would change across the wider system? Who else would be affected, and how?',
+  reflection: 'What surprised you most? What would you do differently — and what single action should happen first?',
+};
+
 const LINKABLE_TYPES = {
   curveball: ['action'],
   ripple: ['beginning', 'action', 'end', 'curveball'],
@@ -109,6 +119,8 @@ export function initGame(roomCode, options = {}) {
   const participantRail = document.getElementById('participant-rail');
   const addParticipantBtn = document.getElementById('add-participant-btn');
   const playerAvatar = document.getElementById('player-avatar');
+  const panelFaciPrompt = document.getElementById('panel-faci-prompt');
+  const panelFaciText = document.getElementById('panel-faci-text');
 
   let selectedCardId = null;
   let panelMode = 'cards';
@@ -116,6 +128,7 @@ export function initGame(roomCode, options = {}) {
   let hasFittedView = false;
   let isConnectMode = false;
   let connectionSourceId = null;
+  let isInitializing = true; // suppresses phase announcement on first load
 
   const participants = normaliseParticipants(initialState?.participants, playerName);
   const initialActiveParticipantId = initialState?.activeParticipantId && participants.some((participant) => participant.id === initialState.activeParticipantId)
@@ -217,6 +230,7 @@ export function initGame(roomCode, options = {}) {
   });
 
   document.getElementById('connect-mode-btn')?.addEventListener('click', toggleConnectMode);
+  document.getElementById('tidy-board-btn')?.addEventListener('click', tidyBoard);
 
   nextPhaseBtn?.addEventListener('click', () => phases.nextPhase());
   prevPhaseBtn?.addEventListener('click', () => phases.prevPhase());
@@ -345,6 +359,17 @@ export function initGame(roomCode, options = {}) {
       panelFooterCopy.textContent = panelMode === 'story'
         ? 'Phase notes feed the story summary and the exported workshop output.'
         : 'Click any card on the board to edit it. Drag only when you want to reposition it.';
+    }
+
+    // Facilitation prompt — show in cards mode only; hide in story mode
+    if (panelFaciPrompt && panelFaciText) {
+      const prompt = PHASE_FACILITATION_PROMPTS[phase.id];
+      if (prompt && panelMode === 'cards') {
+        panelFaciText.textContent = prompt;
+        panelFaciPrompt.removeAttribute('hidden');
+      } else {
+        panelFaciPrompt.setAttribute('hidden', '');
+      }
     }
 
     renderPanelTabs();
@@ -625,8 +650,48 @@ export function initGame(roomCode, options = {}) {
 
     const intro = document.createElement('p');
     intro.className = 'story-panel-copy';
-    intro.textContent = 'Capture one strong takeaway for the current phase, then review the live story and export it as a workshop output.';
+    intro.textContent = 'Capture one takeaway per phase — the notebook builds a live record of the session.';
     panelStoryView.appendChild(intro);
+
+    // Past phase notes — read-only chronological history
+    const currentPhaseIndex = phases.getPhaseIndex();
+    const pastPhases = PHASES.slice(0, currentPhaseIndex).filter(
+      (ph) => gameState.phaseNotes[ph.id]
+    );
+
+    if (pastPhases.length > 0) {
+      const historySection = document.createElement('div');
+      historySection.className = 'notebook-history';
+
+      pastPhases.forEach((ph) => {
+        const entry = document.createElement('div');
+        entry.className = 'notebook-history-entry';
+
+        const header = document.createElement('div');
+        header.className = 'notebook-history-header';
+
+        const tag = document.createElement('div');
+        tag.className = `notebook-history-tag notebook-history-tag--${ph.id}`;
+        tag.textContent = ph.label;
+        header.appendChild(tag);
+
+        const label = document.createElement('div');
+        label.className = 'notebook-history-label';
+        label.textContent = ph.description;
+        header.appendChild(label);
+
+        entry.appendChild(header);
+
+        const text = document.createElement('div');
+        text.className = 'notebook-history-text';
+        text.textContent = gameState.phaseNotes[ph.id];
+        entry.appendChild(text);
+
+        historySection.appendChild(entry);
+      });
+
+      panelStoryView.appendChild(historySection);
+    }
 
     const notebook = document.createElement('section');
     notebook.className = 'story-notebook';
@@ -961,17 +1026,83 @@ export function initGame(roomCode, options = {}) {
       }
     }
 
-    // Phase transition flash effect
-    if (index > 0) {
-      showPhaseFlash(phase.id);
-    }
+    // Phase announcement overlay — replaces the old colour-flash with a full-screen card
+    showPhaseAnnouncement(phase, index);
   }
 
-  function showPhaseFlash(phaseId) {
-    const flash = document.createElement('div');
-    flash.className = `phase-transition-flash phase-transition-flash--${phaseId}`;
-    document.body.appendChild(flash);
-    flash.addEventListener('animationend', () => flash.remove());
+  function showPhaseAnnouncement(phase, index) {
+    // Don't interrupt the user with an overlay during the initial page load
+    if (isInitializing) return;
+
+    const overlay = document.getElementById('phase-announcement');
+    if (!overlay) return;
+
+    // Per-phase colour palettes for the announcement card
+    const ANNOUNCE_PALETTES = {
+      setup:      { color: '#3B82F6', bg: 'rgba(59,130,246,0.06)',  border: 'rgba(59,130,246,0.2)'  },
+      planning:   { color: '#E5A100', bg: 'rgba(229,161,0,0.06)',   border: 'rgba(229,161,0,0.22)'  },
+      curveball:  { color: '#DC2626', bg: 'rgba(220,38,38,0.06)',   border: 'rgba(220,38,38,0.2)'   },
+      ripple:     { color: '#059669', bg: 'rgba(5,150,105,0.06)',   border: 'rgba(5,150,105,0.2)'   },
+      reflection: { color: '#1E40AF', bg: 'rgba(30,64,175,0.06)',  border: 'rgba(30,64,175,0.2)'   },
+    };
+    const palette = ANNOUNCE_PALETTES[phase.id] || ANNOUNCE_PALETTES.setup;
+
+    // Rebuild card content
+    while (overlay.firstChild) overlay.removeChild(overlay.firstChild);
+
+    const card = document.createElement('div');
+    card.className = 'phase-announcement-card';
+    card.style.setProperty('--announce-color',  palette.color);
+    card.style.setProperty('--announce-bg',     palette.bg);
+    card.style.setProperty('--announce-border', palette.border);
+
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'phase-announcement-eyebrow';
+    eyebrow.textContent = `Phase ${index + 1} of ${PHASES.length}`;
+    card.appendChild(eyebrow);
+
+    const title = document.createElement('div');
+    title.className = 'phase-announcement-title';
+    title.textContent = phase.label;
+    card.appendChild(title);
+
+    const desc = document.createElement('div');
+    desc.className = 'phase-announcement-desc';
+    desc.textContent = phase.description;
+    card.appendChild(desc);
+
+    const promptBox = document.createElement('div');
+    promptBox.className = 'phase-announcement-prompt';
+
+    const promptLabel = document.createElement('div');
+    promptLabel.className = 'phase-announcement-prompt-label';
+    promptLabel.textContent = '🎯 Facilitator — ask the group';
+    promptBox.appendChild(promptLabel);
+
+    const promptText = document.createElement('div');
+    promptText.className = 'phase-announcement-prompt-text';
+    promptText.textContent = PHASE_FACILITATION_PROMPTS[phase.id] || phase.description;
+    promptBox.appendChild(promptText);
+    card.appendChild(promptBox);
+
+    const footer = document.createElement('div');
+    footer.className = 'phase-announcement-footer';
+
+    const hint = document.createElement('div');
+    hint.className = 'phase-announcement-hint';
+    hint.textContent = 'Discuss the prompt, then start placing cards.';
+    footer.appendChild(hint);
+
+    const goBtn = document.createElement('button');
+    goBtn.className = 'phase-announcement-go';
+    goBtn.type = 'button';
+    goBtn.textContent = "Let's go →";
+    goBtn.addEventListener('click', () => overlay.setAttribute('hidden', ''));
+    footer.appendChild(goBtn);
+
+    card.appendChild(footer);
+    overlay.appendChild(card);
+    overlay.removeAttribute('hidden');
   }
 
   function populatePanel(filterType) {
@@ -1841,6 +1972,20 @@ export function initGame(roomCode, options = {}) {
   }
 
   // ================================================
+  // Tidy Board — snap cards back to the standard timeline layout
+  // ================================================
+
+  function tidyBoard() {
+    // Temporarily add is-tidying to all cards so CSS transitions fire on left/top
+    document.querySelectorAll('.board-card').forEach((el) => el.classList.add('is-tidying'));
+    relayoutBoard(false); // full layout — re-calculates all positions
+    fitBoardToSession();  // re-centres the viewport
+    setTimeout(() => {
+      document.querySelectorAll('.board-card').forEach((el) => el.classList.remove('is-tidying'));
+    }, 520);
+  }
+
+  // ================================================
 
   function emitStateChange() {
     if (panelMode === 'story') {
@@ -1907,6 +2052,9 @@ export function initGame(roomCode, options = {}) {
   renderCardEditor();
   syncPanelMode();
   emitStateChange();
+
+  // All initial setup is done — enable phase announcements for real transitions
+  isInitializing = false;
 
   return {
     board,
