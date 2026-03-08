@@ -356,6 +356,109 @@
   fill: rgba(245, 158, 11, 0.9);
 }
 
+/* ---- Manual connections (user-drawn links, including loops) ---- */
+.connection-line--manual {
+  stroke: #7C3AED;
+  stroke-width: 1.5;
+  stroke-dasharray: 9 5;
+  fill: none;
+  opacity: 0.72;
+}
+
+.connection-line--manual-loop {
+  stroke: #5B21B6;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  fill: none;
+  opacity: 0.72;
+}
+
+.connection-arrow--manual {
+  fill: #7C3AED;
+  opacity: 0.85;
+}
+
+.connection-arrow--manual-loop {
+  fill: #5B21B6;
+  opacity: 0.85;
+}
+
+.connection-node--manual {
+  fill: #7C3AED;
+  stroke: rgba(255,255,255,0.8);
+  stroke-width: 1.5;
+  opacity: 0.7;
+}
+
+/* ---- Connect Mode (card-linking UI) ---- */
+
+/* Cursor change when connect mode is active */
+#game-container.connect-mode #board-viewport {
+  cursor: crosshair !important;
+}
+#game-container.connect-mode #board-viewport.is-panning {
+  cursor: crosshair !important;
+}
+
+/* Connect mode button — active state */
+.topbar-btn.connect-btn {
+  border-color: rgba(124, 58, 237, 0.28);
+  color: #5B21B6;
+  background: rgba(124, 58, 237, 0.06);
+}
+
+.topbar-btn.connect-btn.is-active {
+  background: rgba(124, 58, 237, 0.14);
+  border-color: rgba(124, 58, 237, 0.5);
+  color: #4C1D95;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.18);
+}
+
+/* Source card highlight during connection drawing */
+.board-card.connect-source {
+  box-shadow:
+    0 0 0 3px rgba(124, 58, 237, 0.55),
+    0 0 24px rgba(124, 58, 237, 0.25),
+    0 16px 36px rgba(28, 25, 23, 0.14) !important;
+  transform: translateY(-4px) scale(1.03) !important;
+  z-index: 20 !important;
+}
+
+/* Connectable cards pulse in connect mode */
+#game-container.connect-mode .board-card:not(.connect-source):hover {
+  box-shadow:
+    0 0 0 2px rgba(124, 58, 237, 0.3),
+    0 12px 28px rgba(28, 25, 23, 0.12) !important;
+}
+
+/* Connect mode banner (floating instruction strip) */
+.connect-banner {
+  position: absolute;
+  bottom: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(76, 29, 149, 0.9);
+  color: white;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 60;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(76, 29, 149, 0.35);
+  animation: bannerIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes bannerIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
 /* ---- Cards on Board ---- */
 .board-card {
   position: absolute;

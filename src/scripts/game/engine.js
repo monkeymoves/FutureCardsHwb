@@ -114,6 +114,8 @@ export function initGame(roomCode, options = {}) {
   let panelMode = 'cards';
   let activePanelType = initialState?.lastPanelType || 'action';
   let hasFittedView = false;
+  let isConnectMode = false;
+  let connectionSourceId = null;
 
   const participants = normaliseParticipants(initialState?.participants, playerName);
   const initialActiveParticipantId = initialState?.activeParticipantId && participants.some((participant) => participant.id === initialState.activeParticipantId)
@@ -124,6 +126,7 @@ export function initGame(roomCode, options = {}) {
     roomCode,
     cards: initialState?.cards ? cloneCards(initialState.cards) : {},
     connections: initialState?.connections || [],
+    manualConnections: initialState?.manualConnections ? [...initialState.manualConnections] : [],
     phase: initialState?.phase || 'setup',
     phaseNotes: normalisePhaseNotes(initialState?.phaseNotes),
     participants,
@@ -181,7 +184,11 @@ export function initGame(roomCode, options = {}) {
 
   viewport?.addEventListener('click', (event) => {
     if (event.target === viewport || event.target === surface) {
-      setSelectedCard(null);
+      if (isConnectMode) {
+        exitConnectMode();
+      } else {
+        setSelectedCard(null);
+      }
     }
   });
 
@@ -201,9 +208,15 @@ export function initGame(roomCode, options = {}) {
   });
   window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
-      closeCardEditor();
+      if (isConnectMode) {
+        exitConnectMode();
+      } else {
+        closeCardEditor();
+      }
     }
   });
+
+  document.getElementById('connect-mode-btn')?.addEventListener('click', toggleConnectMode);
 
   nextPhaseBtn?.addEventListener('click', () => phases.nextPhase());
   prevPhaseBtn?.addEventListener('click', () => phases.prevPhase());
@@ -645,7 +658,12 @@ export function initGame(roomCode, options = {}) {
     notebookInput.value = gameState.phaseNotes[currentPhase.id] || '';
     notebookInput.addEventListener('input', () => {
       gameState.phaseNotes[currentPhase.id] = notebookInput.value;
-      emitStateChange();
+      // Only update the export-text element — NEVER call renderStoryPanel() from here.
+      // renderStoryPanel() clears the entire panelStoryView DOM (including this textarea),
+      // which destroys focus and breaks typing after every single keystroke.
+      const preEl = panelStoryView?.querySelector('.story-panel-pre');
+      if (preEl) preEl.textContent = buildStoryText(buildStorySummary());
+      onStateChange(snapshotState());
     });
     notebook.appendChild(notebookInput);
 
@@ -1086,7 +1104,7 @@ export function initGame(roomCode, options = {}) {
 
     gameState.cards[cardId] = cardState;
     renderCard(cardState);
-    relayoutBoard();
+    relayoutBoard(true); // preserve drop position — no forced grid snap
     updateEmptyPrompt();
     if (!silent) {
       setSelectedCard(cardId);
@@ -1114,7 +1132,7 @@ export function initGame(roomCode, options = {}) {
       cardState.linkedTo = findNearestLinkTarget(cardState.type, cardState.position, cardId)?.cardId || null;
     }
 
-    relayoutBoard(cardId);
+    relayoutBoard(true); // preserve the user's dragged position
     emitStateChange();
   }
 
@@ -1165,7 +1183,7 @@ export function initGame(roomCode, options = {}) {
       selectedCardId = null;
     }
 
-    relayoutBoard();
+    relayoutBoard(true); // preserve other card positions when one is removed
     updateEmptyPrompt();
     renderCardEditor();
     emitStateChange();
@@ -1176,7 +1194,7 @@ export function initGame(roomCode, options = {}) {
     gameState.connections = cards
       .filter((card) => card.linkedTo)
       .map((card) => ({ from: card.linkedTo, to: card.cardId, type: card.type }));
-    timeline.drawConnections(cards);
+    timeline.drawConnections(cards, gameState.manualConnections);
   }
 
   function updateEmptyPrompt() {
@@ -1324,8 +1342,10 @@ export function initGame(roomCode, options = {}) {
       });
   }
 
-  function relayoutBoard() {
-    relayoutTimelineCards();
+  function relayoutBoard(skipTimelineLayout = false) {
+    // skipTimelineLayout = true preserves the user's free card positions.
+    // Only pass false (or omit) for the initial session setup.
+    if (!skipTimelineLayout) relayoutTimelineCards();
     relayoutAttachments();
     updateConnections();
     renderCardEditor();
@@ -1427,11 +1447,16 @@ export function initGame(roomCode, options = {}) {
       cardEl.style.position = 'absolute';
       cardEl.dataset.cardId = cardState.cardId;
       cardEl.addEventListener('pointerdown', (event) => {
-        if (!drag.isActive() && phases.canMoveCards()) {
+        // Don't start board drag in connect mode — clicks must register cleanly
+        if (!drag.isActive() && phases.canMoveCards() && !isConnectMode) {
           drag.startBoardDrag(event, cardEl);
         }
       });
       cardEl.addEventListener('click', (event) => {
+        if (isConnectMode) {
+          handleConnectClick(cardState.cardId);
+          return;
+        }
         setSelectedCard(cardState.cardId);
         if (!drag.shouldSuppressClick()) {
           openCardEditor(cardState.cardId);
@@ -1642,6 +1667,44 @@ export function initGame(roomCode, options = {}) {
     });
     cardEditorContent.appendChild(noteInput);
 
+    // Manual connections from / to this card
+    const fromConns = gameState.manualConnections.filter((c) => c.from === selectedCardId);
+    const toConns = gameState.manualConnections.filter((c) => c.to === selectedCardId);
+    if (fromConns.length > 0 || toConns.length > 0) {
+      const connLabel = document.createElement('div');
+      connLabel.className = 'card-inspector-label';
+      connLabel.textContent = 'Custom Links';
+      cardEditorContent.appendChild(connLabel);
+
+      [...fromConns.map((c) => ({ ...c, dir: 'to' })), ...toConns.map((c) => ({ ...c, dir: 'from' }))].forEach((conn) => {
+        const otherId = conn.dir === 'to' ? conn.to : conn.from;
+        const otherCard = gameState.cards[otherId];
+        if (!otherCard) return;
+
+        const row = document.createElement('div');
+        row.className = 'card-conn-row';
+
+        const lbl = document.createElement('span');
+        lbl.className = 'card-conn-label';
+        lbl.textContent = conn.dir === 'to'
+          ? `→ ${truncate(otherCard.title, 30)}`
+          : `← ${truncate(otherCard.title, 30)}`;
+        row.appendChild(lbl);
+
+        const removeConnBtn = document.createElement('button');
+        removeConnBtn.className = 'card-conn-remove';
+        removeConnBtn.type = 'button';
+        removeConnBtn.textContent = '×';
+        removeConnBtn.title = 'Remove this connection';
+        removeConnBtn.addEventListener('click', () => {
+          removeManualConnection(conn.from, conn.to);
+          renderCardEditor();
+        });
+        row.appendChild(removeConnBtn);
+        cardEditorContent.appendChild(row);
+      });
+    }
+
     const actions = document.createElement('div');
     actions.className = 'card-inspector-actions';
 
@@ -1685,12 +1748,99 @@ export function initGame(roomCode, options = {}) {
       phase: gameState.phase,
       cards: cloneCards(gameState.cards),
       connections: [...gameState.connections],
+      manualConnections: [...gameState.manualConnections],
       phaseNotes: { ...gameState.phaseNotes },
       participants: gameState.participants.map((participant) => ({ ...participant })),
       activeParticipantId: gameState.activeParticipantId,
       lastPanelType: activePanelType,
     };
   }
+
+  // ================================================
+  // Connect Mode — draw arbitrary card-to-card links
+  // ================================================
+
+  function toggleConnectMode() {
+    if (isConnectMode) {
+      exitConnectMode();
+    } else {
+      enterConnectMode();
+    }
+  }
+
+  function enterConnectMode() {
+    isConnectMode = true;
+    connectionSourceId = null;
+    document.getElementById('game-container')?.classList.add('connect-mode');
+    const btn = document.getElementById('connect-mode-btn');
+    if (btn) { btn.textContent = '✕ Cancel Link'; btn.classList.add('is-active'); }
+    showConnectBanner('Click the source card for your connection');
+  }
+
+  function exitConnectMode() {
+    isConnectMode = false;
+    connectionSourceId = null;
+    document.getElementById('game-container')?.classList.remove('connect-mode');
+    document.querySelectorAll('.board-card').forEach((el) => el.classList.remove('connect-source'));
+    const btn = document.getElementById('connect-mode-btn');
+    if (btn) { btn.textContent = '⤴ Link Cards'; btn.classList.remove('is-active'); }
+    hideConnectBanner();
+  }
+
+  function handleConnectClick(cardId) {
+    if (!connectionSourceId) {
+      // First click — select source
+      connectionSourceId = cardId;
+      document.querySelectorAll('.board-card').forEach((el) => {
+        el.classList.toggle('connect-source', el.dataset.cardId === cardId);
+      });
+      const sourceTitle = gameState.cards[cardId]?.title || cardId;
+      showConnectBanner(`From: "${truncate(sourceTitle, 32)}" — now click the target card`);
+    } else if (connectionSourceId === cardId) {
+      // Clicked same card — cancel source selection
+      connectionSourceId = null;
+      document.querySelectorAll('.board-card').forEach((el) => el.classList.remove('connect-source'));
+      showConnectBanner('Click the source card for your connection');
+    } else {
+      // Second click — complete the connection
+      addManualConnection(connectionSourceId, cardId);
+      exitConnectMode();
+    }
+  }
+
+  function showConnectBanner(message) {
+    let banner = document.getElementById('connect-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'connect-banner';
+      banner.className = 'connect-banner';
+      viewport?.appendChild(banner);
+    }
+    banner.textContent = message;
+  }
+
+  function hideConnectBanner() {
+    document.getElementById('connect-banner')?.remove();
+  }
+
+  function addManualConnection(fromId, toId) {
+    if (fromId === toId) return; // no self-loops
+    const exists = gameState.manualConnections.some((c) => c.from === fromId && c.to === toId);
+    if (exists) return; // no duplicates
+    gameState.manualConnections.push({ from: fromId, to: toId });
+    updateConnections();
+    emitStateChange();
+  }
+
+  function removeManualConnection(fromId, toId) {
+    gameState.manualConnections = gameState.manualConnections.filter(
+      (c) => !(c.from === fromId && c.to === toId)
+    );
+    updateConnections();
+    emitStateChange();
+  }
+
+  // ================================================
 
   function emitStateChange() {
     if (panelMode === 'story') {
@@ -1746,7 +1896,9 @@ export function initGame(roomCode, options = {}) {
     onPhaseChange(phases.getCurrentPhase(), 0);
   }
 
-  relayoutBoard();
+  // skipTimelineLayout = true: preserve the manually set positions of both
+  // fresh session begin/end cards and any loaded card positions from save state.
+  relayoutBoard(true);
   if (!hasFittedView) {
     fitBoardToSession();
     hasFittedView = true;

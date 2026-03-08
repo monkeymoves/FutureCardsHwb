@@ -131,9 +131,60 @@ export function createTimeline(surface) {
   }
 
   /**
-   * Draw connection lines for the timeline plus attached curveball/ripple cards.
+   * Draw an arbitrary user-defined connection between any two cards.
+   * Forward connections arc above the cards; backward loops arc higher above
+   * so they're visually distinct (the "bridge" goes higher the further it travels).
    */
-  function drawConnections(cards) {
+  function drawManualConnection(fromCard, toCard) {
+    if (!fromCard?.position || !toCard?.position) return;
+
+    // Connect from card tops (looks cleaner than centres for arcs above the cards)
+    const fromX = fromCard.position.x + CARD_WIDTH / 2;
+    const fromY = fromCard.position.y;
+    const toX = toCard.position.x + CARD_WIDTH / 2;
+    const toY = toCard.position.y;
+
+    const isLoop = toX < fromX; // right-to-left = feedback loop
+    const dist = Math.hypot(toX - fromX, toY - fromY);
+    const arcHeight = isLoop
+      ? Math.max(280, dist * 0.52)
+      : Math.max(180, dist * 0.4);
+
+    // Both arc above the cards; loops go higher for visual clarity
+    const cp1x = fromX;
+    const cp1y = fromY - arcHeight;
+    const cp2x = toX;
+    const cp2y = toY - arcHeight;
+
+    const modifier = isLoop ? 'manual-loop' : 'manual';
+    createPath(
+      `M ${fromX} ${fromY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${toX} ${toY}`,
+      `connection-line connection-line--${modifier}`
+    );
+
+    // Arrowhead — tangent direction at endpoint is from cp2 toward (toX, toY)
+    const angle = Math.atan2(toY - cp2y, toX - cp2x);
+    const arrowSize = 8;
+    const ax1 = toX - arrowSize * Math.cos(angle - 0.45);
+    const ay1 = toY - arrowSize * Math.sin(angle - 0.45);
+    const ax2 = toX - arrowSize * Math.cos(angle + 0.45);
+    const ay2 = toY - arrowSize * Math.sin(angle + 0.45);
+
+    const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    arrow.setAttribute('points', `${toX},${toY} ${ax1},${ay1} ${ax2},${ay2}`);
+    arrow.setAttribute('class', `connection-arrow connection-arrow--${modifier}`);
+    svgLayer.appendChild(arrow);
+
+    // Small endpoint dots
+    createCircle(fromX, fromY, 'connection-node connection-node--manual', 5);
+    createCircle(toX, toY, 'connection-node connection-node--manual', 4);
+  }
+
+  /**
+   * Draw connection lines for the timeline plus attached curveball/ripple cards,
+   * plus any manually drawn connections (including backward loops).
+   */
+  function drawConnections(cards, manualConnections = []) {
     if (!svgLayer) return;
 
     while (svgLayer.firstChild) {
@@ -150,6 +201,15 @@ export function createTimeline(surface) {
     cards
       .filter((card) => (['curveball', 'ripple'].includes(card.type) || (card.type === 'action' && card.lane === 'response')) && card.linkedTo)
       .forEach((card) => drawAttachmentConnection(byId[card.linkedTo], card));
+
+    // Draw user-defined connections (any card → any card, including loops)
+    manualConnections.forEach(({ from, to }) => {
+      const fromCard = byId[from];
+      const toCard = byId[to];
+      if (fromCard && toCard) {
+        drawManualConnection(fromCard, toCard);
+      }
+    });
   }
 
   /**
