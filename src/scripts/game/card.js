@@ -142,9 +142,22 @@ export function createBoardCard(cardData) {
   ownerBadge.hidden = true;
   cardBody.appendChild(ownerBadge);
 
-  // Footer bar
+  // Footer action bar — drag handle on left, link button on right
   const footerBar = document.createElement('div');
   footerBar.className = 'card-footer-bar';
+
+  const dragHandle = document.createElement('div');
+  dragHandle.className = 'card-drag-handle';
+  dragHandle.textContent = '⠿ drag';
+  dragHandle.setAttribute('aria-hidden', 'true');
+  footerBar.appendChild(dragHandle);
+
+  const linkBtn = document.createElement('button');
+  linkBtn.className = 'card-link-btn';
+  linkBtn.type = 'button';
+  linkBtn.title = 'Draw a connection from this card to another';
+  linkBtn.textContent = '⤴ Link';
+  footerBar.appendChild(linkBtn);
 
   card.appendChild(cardTop);
   card.appendChild(cardBody);

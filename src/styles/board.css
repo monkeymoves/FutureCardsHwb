@@ -359,35 +359,37 @@
 /* ---- Manual connections (user-drawn links, including loops) ---- */
 .connection-line--manual {
   stroke: #7C3AED;
-  stroke-width: 1.5;
-  stroke-dasharray: 9 5;
+  stroke-width: 2.5;
+  stroke-dasharray: 10 5;
   fill: none;
-  opacity: 0.72;
+  opacity: 0.88;
+  filter: drop-shadow(0 1px 3px rgba(124, 58, 237, 0.22));
 }
 
 .connection-line--manual-loop {
-  stroke: #5B21B6;
-  stroke-width: 1.5;
-  stroke-dasharray: 5 4;
+  stroke: #6D28D9;
+  stroke-width: 2.5;
+  stroke-dasharray: 6 5;
   fill: none;
-  opacity: 0.72;
+  opacity: 0.88;
+  filter: drop-shadow(0 1px 3px rgba(109, 40, 217, 0.22));
 }
 
 .connection-arrow--manual {
   fill: #7C3AED;
-  opacity: 0.85;
+  opacity: 0.92;
 }
 
 .connection-arrow--manual-loop {
-  fill: #5B21B6;
-  opacity: 0.85;
+  fill: #6D28D9;
+  opacity: 0.92;
 }
 
 .connection-node--manual {
   fill: #7C3AED;
-  stroke: rgba(255,255,255,0.8);
-  stroke-width: 1.5;
-  opacity: 0.7;
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 2;
+  opacity: 0.85;
 }
 
 /* ---- Connect Mode (card-linking UI) ---- */

@@ -1561,7 +1561,7 @@ export function initGame(roomCode, options = {}) {
 
     board.fitToContent(cards, {
       leftInset: 110,
-      rightInset: 430,
+      rightInset: 580,   // updated for wider panel (560px + padding)
       topInset: 110,
       bottomInset: 110,
     });
@@ -1663,6 +1663,18 @@ export function initGame(roomCode, options = {}) {
         }
       });
       surface.appendChild(cardEl);
+
+      // Wire the in-card link button: enters connect mode with this card pre-selected as source
+      const linkBtn = cardEl.querySelector('.card-link-btn');
+      if (linkBtn) {
+        linkBtn.addEventListener('click', (event) => {
+          event.stopPropagation(); // prevent card click → openCardEditor
+          if (!isConnectMode) {
+            enterConnectMode();
+          }
+          handleConnectClick(cardState.cardId);
+        });
+      }
     }
 
     cardEl.style.left = `${cardState.position.x}px`;

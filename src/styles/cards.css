@@ -185,11 +185,74 @@
   color: var(--color-text-muted);
 }
 
-/* Tiny accent bar at very bottom */
+/* Action footer bar — drag affordance + link shortcut */
 .card-footer-bar {
-  height: 4px;
+  height: 30px;
   background: var(--card-accent);
-  opacity: 0.3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  gap: 6px;
+}
+
+/* Grip handle signals draggability */
+.card-drag-handle {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: grab;
+  user-select: none;
+  line-height: 1;
+}
+
+/* Link button — revealed on card hover/selection */
+.card-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+
+.board-card:hover .card-link-btn,
+.board-card.is-selected .card-link-btn {
+  opacity: 1;
+}
+
+.card-link-btn:hover {
+  background: rgba(255, 255, 255, 0.32);
+  border-color: rgba(255, 255, 255, 0.48);
+}
+
+/* Action cards (yellow) use dark text for contrast */
+.card--action .card-drag-handle {
+  color: rgba(0, 0, 0, 0.28);
+}
+
+.card--action .card-link-btn {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.card--action .card-link-btn:hover {
+  background: rgba(0, 0, 0, 0.14);
+  border-color: rgba(0, 0, 0, 0.2);
 }
 
 /* ================================================
@@ -355,7 +418,9 @@
   font-size: 0.72rem;
 }
 
-.card--mini .card-desc {
+.card--mini .card-desc,
+.card--mini .card-footer-bar,
+.panel-card .card-footer-bar {
   display: none;
 }
 

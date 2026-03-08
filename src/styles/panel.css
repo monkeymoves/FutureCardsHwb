@@ -26,7 +26,7 @@
    ================================================ */
 
 #card-panel {
-  --panel-width: 420px;
+  --panel-width: 560px;
   position: absolute;
   top: 64px;     /* below topbar */
   right: 0;
@@ -48,7 +48,7 @@
 }
 
 #card-panel.panel--story {
-  --panel-width: 640px;
+  --panel-width: 660px;
 }
 
 /* Phase accent stripe at very top of panel */

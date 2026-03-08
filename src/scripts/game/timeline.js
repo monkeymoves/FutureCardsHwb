@@ -164,7 +164,7 @@ export function createTimeline(surface) {
 
     // Arrowhead — tangent direction at endpoint is from cp2 toward (toX, toY)
     const angle = Math.atan2(toY - cp2y, toX - cp2x);
-    const arrowSize = 8;
+    const arrowSize = 12; // larger than timeline arrows for better visibility
     const ax1 = toX - arrowSize * Math.cos(angle - 0.45);
     const ay1 = toY - arrowSize * Math.sin(angle - 0.45);
     const ax2 = toX - arrowSize * Math.cos(angle + 0.45);
