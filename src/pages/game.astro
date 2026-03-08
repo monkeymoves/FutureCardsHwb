@@ -28,14 +28,17 @@ import GameLayout from '../layouts/GameLayout.astro';
       </div>
 
       <div class="topbar-right">
+        <!-- Participants: avatar chip opens inline roster -->
         <div id="participant-rail" class="participant-rail" aria-label="Session participants"></div>
-        <button id="add-participant-btn" class="topbar-btn" type="button">+ Player</button>
-        <div class="players-indicator" title="Current player">
+        <button id="add-participant-btn" class="topbar-btn topbar-btn--icon" type="button" title="Add a participant">+ Player</button>
+        <div class="players-indicator" title="Active player">
           <div class="player-avatar" id="player-avatar">P</div>
         </div>
-        <button id="tidy-board-btn" class="topbar-btn" type="button" title="Snap all cards back into the standard timeline layout">↕ Tidy Board</button>
-        <button id="connect-mode-btn" class="topbar-btn connect-btn" type="button" title="Click two cards to draw a connection between them">⤴ Link Cards</button>
-        <button id="prev-phase-btn" class="topbar-btn" type="button" style="display: none;">← Previous</button>
+        <div class="topbar-divider" aria-hidden="true"></div>
+        <button id="tidy-board-btn" class="topbar-btn" type="button" title="Snap all cards back into the standard timeline layout">↕ Tidy</button>
+        <button id="connect-mode-btn" class="topbar-btn connect-btn" type="button" title="Click two cards to draw a connection between them">⤴ Link</button>
+        <div class="topbar-divider" aria-hidden="true"></div>
+        <button id="prev-phase-btn" class="topbar-btn" type="button" style="display: none;">← Back</button>
         <button id="next-phase-btn" class="topbar-btn primary" type="button">Next: Planning →</button>
       </div>
     </header>
@@ -96,27 +99,20 @@ import GameLayout from '../layouts/GameLayout.astro';
       <div id="panel-card-list" class="panel-cards"></div>
       <div id="panel-story-view" class="panel-story-view" hidden></div>
 
+      <!-- Inline card inspector — replaces the floating modal -->
+      <div id="panel-inspector-view" class="panel-inspector-view" hidden>
+        <div class="panel-inspector-bar">
+          <button id="panel-inspector-back-btn" type="button" class="panel-inspector-back-btn">← Back</button>
+          <div id="panel-inspector-crumb" class="panel-inspector-crumb"></div>
+        </div>
+        <div id="card-editor-content" class="card-editor-content panel-inspector-content"></div>
+      </div>
+
       <div class="panel-footer">
         <div id="panel-card-count" class="panel-card-count">Loading cards...</div>
-        <div class="panel-footer-copy">Select a card on the board to edit it in a larger modal.</div>
+        <div class="panel-footer-copy">Click a card on the board to inspect and edit it.</div>
       </div>
     </aside>
-
-    <div id="card-editor-modal" class="card-modal" hidden>
-      <div class="card-modal-backdrop" data-close-modal></div>
-      <div class="card-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="card-editor-title">
-        <div class="card-modal-header">
-          <div>
-            <div class="card-modal-kicker">Card Editor</div>
-            <h2 id="card-editor-title">Edit Card</h2>
-          </div>
-          <button id="card-editor-close" class="card-modal-close" type="button" aria-label="Close editor">X</button>
-        </div>
-        <div id="card-editor-content" class="card-editor-content">
-          <div class="card-inspector-empty">Select a card on the board to edit it.</div>
-        </div>
-      </div>
-    </div>
   </div>
 </GameLayout>
 

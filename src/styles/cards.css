@@ -208,30 +208,32 @@
   line-height: 1;
 }
 
-/* Link button — revealed on card hover/selection */
+/* Link button — always subtly visible, brightens on hover/selection */
 .card-link-btn {
   display: inline-flex;
   align-items: center;
   gap: 3px;
   padding: 3px 9px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  color: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.65);
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s ease, background 0.15s ease;
+  opacity: 1;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
   white-space: nowrap;
   line-height: 1.5;
 }
 
 .board-card:hover .card-link-btn,
 .board-card.is-selected .card-link-btn {
-  opacity: 1;
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.42);
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .card-link-btn:hover {
@@ -245,14 +247,24 @@
 }
 
 .card--action .card-link-btn {
-  background: rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.07);
   border-color: rgba(0, 0, 0, 0.12);
-  color: rgba(0, 0, 0, 0.65);
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.board-card:hover .card--action .card-link-btn,
+.card--action .board-card:hover .card-link-btn,
+.board-card.is-selected .card--action .card-link-btn,
+.card--action.board-card.is-selected .card-link-btn {
+  background: rgba(0, 0, 0, 0.14);
+  border-color: rgba(0, 0, 0, 0.22);
+  color: rgba(0, 0, 0, 0.72);
 }
 
 .card--action .card-link-btn:hover {
-  background: rgba(0, 0, 0, 0.14);
-  border-color: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.18);
+  border-color: rgba(0, 0, 0, 0.28);
+  color: rgba(0, 0, 0, 0.82);
 }
 
 /* ================================================

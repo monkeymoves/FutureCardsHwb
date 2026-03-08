@@ -113,9 +113,10 @@ export function initGame(roomCode, options = {}) {
   const emptyPrompt = document.getElementById('board-empty-prompt');
   const panelCardCount = document.getElementById('panel-card-count');
   const panelFooterCopy = document.querySelector('.panel-footer-copy');
-  const cardEditorModal = document.getElementById('card-editor-modal');
   const cardEditorContent = document.getElementById('card-editor-content');
-  const cardEditorClose = document.getElementById('card-editor-close');
+  const panelInspectorView = document.getElementById('panel-inspector-view');
+  const panelInspectorBackBtn = document.getElementById('panel-inspector-back-btn');
+  const panelInspectorCrumb = document.getElementById('panel-inspector-crumb');
   const participantRail = document.getElementById('participant-rail');
   const addParticipantBtn = document.getElementById('add-participant-btn');
   const playerAvatar = document.getElementById('player-avatar');
@@ -124,6 +125,7 @@ export function initGame(roomCode, options = {}) {
 
   let selectedCardId = null;
   let panelMode = 'cards';
+  let prevPanelMode = 'cards'; // restored when inspector closes
   let activePanelType = initialState?.lastPanelType || 'action';
   let hasFittedView = false;
   let isConnectMode = false;
@@ -187,7 +189,14 @@ export function initGame(roomCode, options = {}) {
 
   document.querySelectorAll('.panel-mode-tab').forEach((tab) => {
     tab.addEventListener('click', () => {
-      panelMode = tab.dataset.panelMode || 'cards';
+      const newMode = tab.dataset.panelMode || 'cards';
+      // If inspector is open, close it cleanly first
+      if (panelMode === 'inspect') {
+        selectedCardId = null;
+        document.querySelectorAll('.board-card').forEach((el) => el.classList.remove('is-selected'));
+      }
+      prevPanelMode = newMode;
+      panelMode = newMode;
       document.querySelectorAll('.panel-mode-tab').forEach((candidate) => {
         candidate.classList.toggle('active', candidate === tab);
       });
@@ -215,10 +224,7 @@ export function initGame(roomCode, options = {}) {
     emitStateChange();
   });
 
-  cardEditorClose?.addEventListener('click', closeCardEditor);
-  document.querySelectorAll('[data-close-modal]').forEach((el) => {
-    el.addEventListener('click', closeCardEditor);
-  });
+  panelInspectorBackBtn?.addEventListener('click', closeCardEditor);
   window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       if (isConnectMode) {
@@ -508,20 +514,27 @@ export function initGame(roomCode, options = {}) {
 
   function syncPanelMode() {
     const showCards = panelMode === 'cards';
+    const showStory = panelMode === 'story';
+    const showInspect = panelMode === 'inspect';
 
-    cardPanel?.classList.toggle('panel--story', !showCards);
+    cardPanel?.classList.toggle('panel--story', showStory);
     cardPanel?.classList.toggle('panel--cards', showCards);
+    cardPanel?.classList.toggle('panel--inspect', showInspect);
+
     panelCards?.toggleAttribute('hidden', !showCards);
-    panelStoryView?.toggleAttribute('hidden', showCards);
+    panelStoryView?.toggleAttribute('hidden', !showStory);
+    panelInspectorView?.toggleAttribute('hidden', !showInspect);
     panelTabs?.toggleAttribute('hidden', !showCards);
 
     renderPanelHeader();
 
     if (showCards) {
       populatePanel(activePanelType);
-    } else {
+    } else if (showStory) {
       renderStoryPanel();
       updatePanelCount('Live session story and export');
+    } else if (showInspect) {
+      renderCardEditor();
     }
   }
 
@@ -969,13 +982,40 @@ export function initGame(roomCode, options = {}) {
 
   function openCardEditor(cardId) {
     if (!gameState.cards[cardId]) return;
+
+    // Remember current mode so Back can restore it
+    if (panelMode !== 'inspect') {
+      prevPanelMode = panelMode;
+    }
+
     selectedCardId = cardId;
-    renderCardEditor();
-    cardEditorModal?.removeAttribute('hidden');
+
+    // Show the breadcrumb label
+    if (panelInspectorCrumb) {
+      const card = gameState.cards[cardId];
+      panelInspectorCrumb.textContent = card ? card.title : '';
+    }
+
+    // Update board selection visuals
+    document.querySelectorAll('.board-card').forEach((el) => {
+      el.classList.toggle('is-selected', el.dataset.cardId === cardId);
+    });
+
+    // Switch panel to inspect mode
+    panelMode = 'inspect';
+    syncPanelMode();
   }
 
   function closeCardEditor() {
-    cardEditorModal?.setAttribute('hidden', '');
+    selectedCardId = null;
+
+    // Deselect all cards
+    document.querySelectorAll('.board-card').forEach((el) => el.classList.remove('is-selected'));
+
+    // Restore the previous panel mode
+    panelMode = prevPanelMode || 'cards';
+    syncPanelMode();
+    renderPanelHeader();
   }
 
   function onPhaseChange(phase, index) {
@@ -983,6 +1023,13 @@ export function initGame(roomCode, options = {}) {
     activePanelType = getAllowedPanelTypes().includes(getRecommendedPanelType(phase.id))
       ? getRecommendedPanelType(phase.id)
       : (getAllowedPanelTypes()[0] || activePanelType);
+    // Close any open inspector when the phase changes
+    if (panelMode === 'inspect') {
+      selectedCardId = null;
+      document.querySelectorAll('.board-card').forEach((el) => el.classList.remove('is-selected'));
+      panelMode = prevPanelMode || 'cards';
+    }
+
     if (phase.id === 'reflection') {
       panelMode = 'story';
       document.querySelectorAll('.panel-mode-tab').forEach((tab) => {
@@ -1339,27 +1386,42 @@ export function initGame(roomCode, options = {}) {
   function quickPlaceCard(cardData) {
     const type = cardData.type;
     const timelineCards = getTimelineCards();
+    let placedId = null;
 
     if (type === 'action') {
       if (phases.getCurrentPhase().id !== 'planning') {
         const linkedCard = getResponseAnchor();
         if (linkedCard) {
           const nextPos = getBranchActionPosition(linkedCard);
-          return placeCard({ ...cardData, lane: 'response', linkedTo: linkedCard.cardId }, nextPos.x, nextPos.y);
+          placedId = placeCard({ ...cardData, lane: 'response', linkedTo: linkedCard.cardId }, nextPos.x, nextPos.y);
         }
       }
 
-      const nextPos = timeline.getNextFreePosition(timelineCards);
-      return placeCard({ ...cardData, lane: 'timeline' }, nextPos.x, nextPos.y);
+      if (!placedId) {
+        const nextPos = timeline.getNextFreePosition(timelineCards);
+        placedId = placeCard({ ...cardData, lane: 'timeline' }, nextPos.x, nextPos.y);
+      }
+    } else {
+      const linkedCard = getDefaultAnchorFor(type);
+      if (!linkedCard) {
+        placedId = placeCard(cardData, timeline.TIMELINE_START_X + timeline.CARD_WIDTH * 2, timeline.TIMELINE_Y - timeline.CARD_HEIGHT - 60);
+      } else {
+        const nextPos = getAttachmentPosition(type, linkedCard);
+        placedId = placeCard({ ...cardData, linkedTo: linkedCard.cardId }, nextPos.x, nextPos.y);
+      }
     }
 
-    const linkedCard = getDefaultAnchorFor(type);
-    if (!linkedCard) {
-      return placeCard(cardData, timeline.TIMELINE_START_X + timeline.CARD_WIDTH * 2, timeline.TIMELINE_Y - timeline.CARD_HEIGHT - 60);
+    // Pan to show the newly placed card if it landed off-screen
+    if (placedId) {
+      const card = gameState.cards[placedId];
+      if (card) {
+        const cx = card.position.x + timeline.CARD_WIDTH / 2;
+        const cy = card.position.y + timeline.CARD_HEIGHT / 2;
+        board.panTo(cx, cy, { rightInset: 580, margin: 100 });
+      }
     }
 
-    const nextPos = getAttachmentPosition(type, linkedCard);
-    return placeCard({ ...cardData, linkedTo: linkedCard.cardId }, nextPos.x, nextPos.y);
+    return placedId;
   }
 
   function removeCard(cardId) {
@@ -1657,21 +1719,25 @@ export function initGame(roomCode, options = {}) {
           handleConnectClick(cardState.cardId);
           return;
         }
-        setSelectedCard(cardState.cardId);
         if (!drag.shouldSuppressClick()) {
           openCardEditor(cardState.cardId);
+        } else {
+          setSelectedCard(cardState.cardId);
         }
       });
       surface.appendChild(cardEl);
 
-      // Wire the in-card link button: enters connect mode with this card pre-selected as source
+      // Wire the in-card link button
       const linkBtn = cardEl.querySelector('.card-link-btn');
       if (linkBtn) {
+        // CRITICAL: stop pointerdown before it reaches the card's handler,
+        // otherwise setPointerCapture on the card hijacks the subsequent click.
+        linkBtn.addEventListener('pointerdown', (event) => {
+          event.stopPropagation();
+        });
         linkBtn.addEventListener('click', (event) => {
-          event.stopPropagation(); // prevent card click → openCardEditor
-          if (!isConnectMode) {
-            enterConnectMode();
-          }
+          event.stopPropagation();
+          if (!isConnectMode) enterConnectMode();
           handleConnectClick(cardState.cardId);
         });
       }
@@ -1726,7 +1792,8 @@ export function initGame(roomCode, options = {}) {
       cardEl.classList.toggle('is-selected', cardEl.dataset.cardId === selectedCardId);
     });
     renderPanelHeader();
-    renderCardEditor();
+    // Only rebuild card editor content if the inspector is already visible
+    if (panelMode === 'inspect') renderCardEditor();
   }
 
   function renderCardEditor() {
@@ -1917,6 +1984,24 @@ export function initGame(roomCode, options = {}) {
       });
     }
 
+    // Draw Link button — lets the user start a connection directly from the inspector
+    const linkRow = document.createElement('div');
+    linkRow.className = 'card-inspector-link-row';
+
+    const drawLinkBtn = document.createElement('button');
+    drawLinkBtn.className = 'card-inspector-btn card-inspector-btn--link';
+    drawLinkBtn.type = 'button';
+    drawLinkBtn.textContent = '⤴ Draw Link from this card';
+    drawLinkBtn.title = 'Enter connection mode with this card pre-selected as the source';
+    drawLinkBtn.addEventListener('click', () => {
+      const sourceId = selectedCardId;
+      closeCardEditor(); // go back to board view first
+      enterConnectMode();
+      handleConnectClick(sourceId);
+    });
+    linkRow.appendChild(drawLinkBtn);
+    cardEditorContent.appendChild(linkRow);
+
     const actions = document.createElement('div');
     actions.className = 'card-inspector-actions';
 
@@ -1933,7 +2018,7 @@ export function initGame(roomCode, options = {}) {
     }
 
     const closeBtn = document.createElement('button');
-    closeBtn.className = 'card-inspector-btn';
+    closeBtn.className = 'card-inspector-btn card-inspector-btn--primary';
     closeBtn.type = 'button';
     closeBtn.textContent = 'Done';
     closeBtn.addEventListener('click', closeCardEditor);

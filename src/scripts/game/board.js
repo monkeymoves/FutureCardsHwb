@@ -155,6 +155,29 @@ export function createBoard(viewport, surface) {
     applyTransform();
   }
 
+  /**
+   * Pan the view to put a board-space point in the visible area.
+   * Only adjusts if the point is currently outside the viewport.
+   * rightInset accounts for the side panel width.
+   */
+  function panTo(bx, by, options = {}) {
+    const { rightInset = 0, margin = 80 } = options;
+    const rect = viewport.getBoundingClientRect();
+    const sx = bx * scale + panX;
+    const sy = by * scale + panY;
+    const availW = rect.width - rightInset;
+    const availH = rect.height;
+
+    const inViewX = sx >= margin && sx <= availW - margin;
+    const inViewY = sy >= margin && sy <= availH - margin;
+
+    if (!inViewX || !inViewY) {
+      panX = availW / 2 - bx * scale;
+      panY = availH / 2 - by * scale;
+      applyTransform();
+    }
+  }
+
   // ---- Event listeners ----
   viewport.addEventListener('wheel', handleWheel, { passive: false });
   viewport.addEventListener('pointerdown', (e) => {
@@ -175,6 +198,7 @@ export function createBoard(viewport, surface) {
     zoomOut,
     resetView,
     fitToContent,
+    panTo,
     applyTransform,
     getScale: () => scale,
     getState: () => ({ scale, panX, panY }),

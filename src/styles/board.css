@@ -159,8 +159,9 @@
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 .topbar-btn {
@@ -203,12 +204,18 @@
   box-shadow: none !important;
 }
 
+/* Compact icon-style variant — no text label on small screens */
+.topbar-btn--icon {
+  padding: 7px 10px;
+}
+
 .participant-rail {
   display: flex;
   align-items: center;
   gap: 4px;
-  max-width: 300px;
+  max-width: 200px;
   overflow-x: auto;
+  flex-shrink: 1;
 }
 
 .participant-rail::-webkit-scrollbar {
@@ -427,10 +434,23 @@
 }
 
 /* Connectable cards pulse in connect mode */
+#game-container.connect-mode .board-card:not(.connect-source) {
+  box-shadow:
+    0 0 0 2px rgba(124, 58, 237, 0.15),
+    0 8px 20px rgba(28, 25, 23, 0.10) !important;
+  animation: connectTargetPulse 2s ease-in-out infinite;
+}
+
+@keyframes connectTargetPulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.12), 0 8px 20px rgba(28,25,23,0.08) !important; }
+  50%       { box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.35), 0 8px 20px rgba(28,25,23,0.10) !important; }
+}
+
 #game-container.connect-mode .board-card:not(.connect-source):hover {
   box-shadow:
-    0 0 0 2px rgba(124, 58, 237, 0.3),
-    0 12px 28px rgba(28, 25, 23, 0.12) !important;
+    0 0 0 3px rgba(124, 58, 237, 0.5),
+    0 12px 28px rgba(28, 25, 23, 0.14) !important;
+  animation: none !important;
 }
 
 /* Connect mode banner (floating instruction strip) */

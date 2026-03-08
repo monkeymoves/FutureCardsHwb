@@ -1060,6 +1060,46 @@
   color: var(--color-red-dark);
 }
 
+.card-inspector-btn--primary {
+  background: var(--color-text);
+  color: white;
+  border-color: transparent;
+}
+
+.card-inspector-btn--primary:hover {
+  background: #2C2926;
+  color: white;
+}
+
+/* Draw Link row in card inspector */
+.card-inspector-link-row {
+  margin: 8px 0 2px;
+}
+
+.card-inspector-btn--link {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 12px;
+  border: 1.5px dashed rgba(124, 58, 237, 0.32);
+  background: rgba(124, 58, 237, 0.05);
+  color: #5B21B6;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.card-inspector-btn--link:hover {
+  background: rgba(124, 58, 237, 0.1);
+  border-color: rgba(124, 58, 237, 0.5);
+  border-style: solid;
+  transform: translateY(-1px);
+}
+
 /* ---- Custom connection rows in card editor ---- */
 .card-conn-row {
   display: flex;
@@ -1200,7 +1240,94 @@
 }
 
 /* ================================================
-   Card Editor Modal
+   Panel Inspector View
+   Inline card editor — replaces the floating modal.
+   Shown when panelMode = 'inspect'.
+   ================================================ */
+
+.panel-inspector-view {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-inspector-view[hidden] { display: none; }
+
+/* Top bar: back button + card title breadcrumb */
+.panel-inspector-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid rgba(214, 211, 209, 0.8);
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.5);
+}
+
+.panel-inspector-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(214, 211, 209, 0.9);
+  background: rgba(255,255,255,0.85);
+  color: var(--color-text-secondary);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.panel-inspector-back-btn:hover {
+  background: white;
+  color: var(--color-text);
+  border-color: rgba(59, 130, 246, 0.35);
+  transform: translateX(-2px);
+}
+
+.panel-inspector-crumb {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+/* The editor content lives in a scrollable padded area */
+.panel-inspector-content {
+  padding: 16px 18px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Inspect mode: hide the card tray and story view, show only the inspector */
+#card-panel.panel--inspect .panel-cards,
+#card-panel.panel--inspect .panel-story-view,
+#card-panel.panel--inspect .panel-tabs,
+#card-panel.panel--inspect .panel-deck-context-shell,
+#card-panel.panel--inspect .panel-card-count,
+#card-panel.panel--inspect .panel-faci-prompt,
+#card-panel.panel--inspect .panel-copy {
+  display: none !important;
+}
+
+#card-panel.panel--inspect .panel-inspector-view {
+  display: flex !important;
+}
+
+#card-panel.panel--inspect .panel-header {
+  padding-bottom: 4px;
+}
+
+/* ================================================
+   Card Editor Modal (legacy — kept for safety)
    ================================================ */
 
 @keyframes modalIn {
