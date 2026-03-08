@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \":*)",
+      "Bash(npm create astro@latest . -- --template minimal --install --no-git)",
+      "Bash(npm install firebase html-to-image jspdf)",
+      "Bash(npm run build)",
+      "Bash(npm install)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(lsof -ti:4321)",
+      "Bash(xargs kill -9)",
+      "Bash(open http://localhost:4321/)",
+      "Bash(open http://localhost:4324)"
+    ]
+  }
+}

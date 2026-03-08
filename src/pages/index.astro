@@ -1,0 +1,955 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<BaseLayout title="Home">
+  <Header currentPage="home" />
+
+  <main>
+    <!-- ==================== HERO ==================== -->
+    <section class="hero">
+      <!-- Animated background grain texture -->
+      <div class="hero-grain" aria-hidden="true"></div>
+
+      <div class="hero-content container">
+        <div class="hero-badge">
+          <span class="badge-diamond"></span>
+          Strategic Foresight Card Game
+        </div>
+
+        <h1 class="hero-title">
+          <span class="title-line title-line--1">Shape the</span>
+          <span class="title-line title-line--2 hero-accent">Future</span>
+        </h1>
+
+        <p class="hero-subtitle">
+          Build a strategy. Face the curveballs. See the ripple effects.<br/>
+          A collaborative game for teams who plan beyond the obvious.
+        </p>
+
+        <div class="hero-actions">
+          <a href="/game" class="btn btn-primary btn-large hero-btn">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 2 L14 8 L4 14Z" fill="currentColor"/></svg>
+            Try the Demo
+          </a>
+          <a href="/lobby" class="btn btn-secondary btn-large hero-btn">Create a Session</a>
+        </div>
+      </div>
+
+      <!-- Floating card showcase with dashed connection -->
+      <div class="hero-cards container" aria-hidden="true">
+        <svg class="hero-connection-line" viewBox="0 0 1000 4" preserveAspectRatio="none">
+          <line x1="0" y1="2" x2="1000" y2="2" stroke="#D6D3D1" stroke-width="2.5" stroke-dasharray="10 6"/>
+        </svg>
+
+        <!-- BEGIN card -->
+        <div class="card card--beginning card--mini card--bobbing">
+          <div class="card-top">
+            <div class="card-icon">
+              <svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="18" stroke-dasharray="4 3"/><path d="M28 16 v24 M20 28 h16"/><circle cx="28" cy="28" r="4" fill="rgba(255,255,255,0.3)"/></svg>
+            </div>
+            <span class="card-type-label">Begin</span>
+          </div>
+          <div class="card-body">
+            <div class="card-title">Starting Situation</div>
+          </div>
+          <div class="card-footer-bar"></div>
+        </div>
+
+        <!-- ACTION card 1 -->
+        <div class="card card--action card--mini card--bobbing">
+          <div class="card-top">
+            <div class="card-icon">
+              <svg viewBox="0 0 56 56"><circle cx="28" cy="20" r="8"/><path d="M16 44 c0-10 8-14 12-14 s12 4 12 14"/><path d="M38 18 l6-6 m0 5 l0-5-5 0" stroke-width="2.5"/></svg>
+            </div>
+            <span class="card-type-label">Action</span>
+          </div>
+          <div class="card-body">
+            <div class="card-title">Stakeholder Workshop</div>
+          </div>
+          <div class="card-footer-bar"></div>
+        </div>
+
+        <!-- ACTION card 2 (hidden on mobile) -->
+        <div class="card card--action card--mini card--bobbing hero-card-hide-mobile">
+          <div class="card-top">
+            <div class="card-icon">
+              <svg viewBox="0 0 56 56"><rect x="12" y="10" width="32" height="36" rx="2"/><line x1="18" y1="20" x2="38" y2="20"/><line x1="18" y1="27" x2="34" y2="27"/><line x1="18" y1="34" x2="30" y2="34"/><path d="M34 38 l8 8 m0-6 l0 6-6 0" stroke-width="2.5"/></svg>
+            </div>
+            <span class="card-type-label">Action</span>
+          </div>
+          <div class="card-body">
+            <div class="card-title">Draft Policy Brief</div>
+          </div>
+          <div class="card-footer-bar"></div>
+        </div>
+
+        <!-- CURVEBALL card -->
+        <div class="card card--curveball card--mini card--bobbing">
+          <div class="card-top">
+            <div class="card-icon">
+              <svg viewBox="0 0 56 56"><path d="M28 8 l3 12 h10 l-8 7 3 12-8-7-8 7 3-12-8-7 h10 z" fill="rgba(255,255,255,0.15)"/><path d="M22 20 Q28 8 34 20 Q28 32 22 20" stroke-width="2.5"/><line x1="28" y1="14" x2="28" y2="24"/><circle cx="28" cy="28" r="2" fill="white"/></svg>
+            </div>
+            <span class="card-type-label">Curveball</span>
+          </div>
+          <div class="card-body">
+            <div class="card-title">Budget Cuts!</div>
+          </div>
+          <div class="card-footer-bar"></div>
+        </div>
+
+        <!-- RIPPLE card -->
+        <div class="card card--ripple card--mini card--bobbing">
+          <div class="card-top">
+            <div class="card-icon">
+              <svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="6"/><circle cx="28" cy="28" r="13" stroke-dasharray="3 3"/><circle cx="28" cy="28" r="20" stroke-dasharray="3 5" opacity="0.6"/><path d="M28 8 v6 M28 42 v6 M8 28 h6 M42 28 h6" stroke-width="1.5" opacity="0.4"/></svg>
+            </div>
+            <span class="card-type-label">Ripple</span>
+          </div>
+          <div class="card-body">
+            <div class="card-title">Public Trust Grows</div>
+          </div>
+          <div class="card-footer-bar"></div>
+        </div>
+
+        <!-- END card (hidden on mobile) -->
+        <div class="card card--end card--mini card--bobbing hero-card-hide-mobile">
+          <div class="card-top">
+            <div class="card-icon">
+              <svg viewBox="0 0 56 56"><path d="M18 14 h20 v8 h-20 z" fill="rgba(255,255,255,0.2)"/><line x1="18" y1="14" x2="18" y2="44"/><circle cx="28" cy="38" r="6" stroke-dasharray="3 2"/><path d="M25 38 l2 2 4-4" stroke-width="2.5"/></svg>
+            </div>
+            <span class="card-type-label">End Goal</span>
+          </div>
+          <div class="card-body">
+            <div class="card-title">Report Published</div>
+          </div>
+          <div class="card-footer-bar"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== WHAT IS THIS ==================== -->
+    <section class="what-is">
+      <div class="container">
+        <div class="what-is-grid">
+          <div class="what-is-text">
+            <span class="section-tag">What is Futures?</span>
+            <h2>Strategy, disrupted.</h2>
+            <p>
+              Futures is a strategic foresight game designed for teams in government,
+              education, and communities. You build a pathway from a starting situation
+              to an end goal &mdash; then watch what happens when reality intervenes.
+            </p>
+            <p>
+              Curveballs force creative thinking. Ripple effects reveal hidden consequences.
+              The real value isn't the plan &mdash; it's the conversation that emerges
+              when that plan gets disrupted.
+            </p>
+          </div>
+          <div class="what-is-visual" aria-hidden="true">
+            <div class="scenario-card">
+              <div class="scenario-label">Example Scenario</div>
+              <div class="scenario-beginning">
+                <span class="scenario-dot scenario-dot--blue"></span>
+                <span>"Our council lacks a climate adaptation plan"</span>
+              </div>
+              <div class="scenario-arrow">
+                <svg width="24" height="40" viewBox="0 0 24 40"><path d="M12 0 v32 M6 26 l6 8 6-8" stroke="#D6D3D1" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+              </div>
+              <div class="scenario-end">
+                <span class="scenario-dot scenario-dot--blue"></span>
+                <span>"Publish a strategic foresight report on climate adaptation in Wales"</span>
+              </div>
+              <div class="scenario-meta">Then you build the path between them&hellip;</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== CARD TYPES ==================== -->
+    <section class="card-types-section">
+      <div class="container">
+        <div class="section-head">
+          <span class="section-tag">Your Deck</span>
+          <h2>Four Card Types</h2>
+        </div>
+
+        <div class="types-grid">
+          <div class="type-item">
+            <div class="card card--beginning card--small">
+              <div class="card-top">
+                <div class="card-icon">
+                  <svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="18" stroke-dasharray="4 3"/><path d="M28 16 v24 M20 28 h16"/><circle cx="28" cy="28" r="4" fill="rgba(255,255,255,0.3)"/></svg>
+                </div>
+                <span class="card-type-label">Beginning / End Goal</span>
+              </div>
+              <div class="card-body">
+                <div class="card-title">Set the Scene</div>
+                <div class="card-desc">Define where you are and where you want to be. These anchor your board.</div>
+              </div>
+              <div class="card-footer-bar"></div>
+            </div>
+            <div class="type-meta">
+              <strong>Blue cards</strong>
+              <span>Your start &amp; finish</span>
+            </div>
+          </div>
+
+          <div class="type-item">
+            <div class="card card--action card--small">
+              <div class="card-top">
+                <div class="card-icon">
+                  <svg viewBox="0 0 56 56"><path d="M16 40 v-16 l12-14 l12 14 v16" fill="rgba(0,0,0,0.08)"/><path d="M20 40 v-14 l8-10 l8 10 v14"/><line x1="28" y1="30" x2="28" y2="40"/><circle cx="28" cy="26" r="3"/></svg>
+                </div>
+                <span class="card-type-label">Action</span>
+              </div>
+              <div class="card-body">
+                <div class="card-title">Make Your Move</div>
+                <div class="card-desc">20 actions plus custom blanks. Build your strategy step by step.</div>
+              </div>
+              <div class="card-footer-bar"></div>
+            </div>
+            <div class="type-meta">
+              <strong>Yellow cards</strong>
+              <span>Your plan of attack</span>
+            </div>
+          </div>
+
+          <div class="type-item">
+            <div class="card card--curveball card--small">
+              <div class="card-top">
+                <div class="card-icon">
+                  <svg viewBox="0 0 56 56"><path d="M24 12 l-2 14 h-6 l12 20 l12-20 h-6 l-2-14 z" fill="rgba(255,255,255,0.12)"/><path d="M26 14 l-1 12 h-5 l8 14 l8-14 h-5 l-1-12 z"/></svg>
+                </div>
+                <span class="card-type-label">Curveball</span>
+              </div>
+              <div class="card-body">
+                <div class="card-title">Expect Chaos</div>
+                <div class="card-desc">12 disruptions. Budget cuts, crises, political shifts.</div>
+              </div>
+              <div class="card-footer-bar"></div>
+            </div>
+            <div class="type-meta">
+              <strong>Red cards</strong>
+              <span>Things go sideways</span>
+            </div>
+          </div>
+
+          <div class="type-item">
+            <div class="card card--ripple card--small">
+              <div class="card-top">
+                <div class="card-icon">
+                  <svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="5" fill="rgba(255,255,255,0.25)"/><circle cx="28" cy="28" r="12" stroke-dasharray="4 3"/><circle cx="28" cy="28" r="20" stroke-dasharray="4 4" opacity="0.5"/><path d="M36 18 l4-4 m0 3 l0-3-3 0" stroke-width="2" opacity="0.6"/><path d="M18 36 l-4 4 m3 0 l-3 0 0-3" stroke-width="2" opacity="0.6"/></svg>
+                </div>
+                <span class="card-type-label">Ripple Effect</span>
+              </div>
+              <div class="card-body">
+                <div class="card-title">Trace the Impact</div>
+                <div class="card-desc">12 consequences. What did your actions really cause?</div>
+              </div>
+              <div class="card-footer-bar"></div>
+            </div>
+            <div class="type-meta">
+              <strong>Green cards</strong>
+              <span>The consequences</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== HOW IT WORKS ==================== -->
+    <section class="how-section">
+      <div class="container">
+        <div class="section-head">
+          <span class="section-tag">Gameplay</span>
+          <h2>How a Session Unfolds</h2>
+        </div>
+
+        <div class="phases-grid">
+          <div class="phase-card" style="--phase-color: var(--color-blue);">
+            <div class="phase-number">01</div>
+            <div class="phase-content">
+              <div class="phase-name">Setup</div>
+              <h3>Set the Scene</h3>
+              <p>Your team defines a starting situation and an end goal. What future are you trying to build?</p>
+              <div class="phase-example">
+                "Publish a strategic foresight report on climate adaptation in Wales"
+              </div>
+            </div>
+          </div>
+
+          <div class="phase-card" style="--phase-color: var(--color-yellow);">
+            <div class="phase-number">02</div>
+            <div class="phase-content">
+              <div class="phase-name">Planning</div>
+              <h3>Build the Pathway</h3>
+              <p>Choose 3&ndash;5 action cards and place them on the board. This is your initial strategy.</p>
+              <div class="phase-pills">
+                <span class="pill pill--yellow">Evidence Review</span>
+                <span class="pill-arrow">&rarr;</span>
+                <span class="pill pill--yellow">Workshop</span>
+                <span class="pill-arrow">&rarr;</span>
+                <span class="pill pill--yellow">Draft Brief</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="phase-card" style="--phase-color: var(--color-red);">
+            <div class="phase-number">03</div>
+            <div class="phase-content">
+              <div class="phase-name">Curveball</div>
+              <h3>Face Disruptions</h3>
+              <p>The facilitator drops a curveball onto your plan. How do you adapt? What do you change?</p>
+              <div class="phase-pills">
+                <span class="pill pill--yellow">Workshop</span>
+                <span class="pill pill--red pill--stacked">Budget Cuts!</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="phase-card" style="--phase-color: var(--color-green);">
+            <div class="phase-number">04</div>
+            <div class="phase-content">
+              <div class="phase-name">Ripple Effects</div>
+              <h3>See the Consequences</h3>
+              <p>Place ripple cards to explore what your decisions caused. Not everything is predictable.</p>
+              <div class="phase-pills">
+                <span class="pill pill--green">Public Trust &uarr;</span>
+                <span class="pill pill--green">Collaboration</span>
+                <span class="pill pill--green pill--faded">Capacity Strain</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="phase-card" style="--phase-color: var(--color-blue-dark);">
+            <div class="phase-number">05</div>
+            <div class="phase-content">
+              <div class="phase-name">Reflection</div>
+              <h3>Reflect &amp; Strategise</h3>
+              <p>Step back. View the full picture. Export your session story. What are the real next steps?</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== WHO ITS FOR ==================== -->
+    <section class="audience-section">
+      <div class="container">
+        <div class="section-head">
+          <span class="section-tag">Who It's For</span>
+          <h2>Built for Real Conversations</h2>
+        </div>
+
+        <div class="audience-grid">
+          <div class="audience-card">
+            <div class="audience-icon">
+              <svg viewBox="0 0 48 48" fill="none" stroke="var(--color-blue)" stroke-width="2" stroke-linecap="round"><rect x="8" y="8" width="32" height="32" rx="4"/><path d="M16 20 h16 M16 28 h10"/><circle cx="36" cy="36" r="6" fill="var(--color-blue-light)" stroke="var(--color-blue)"/><path d="M34 36 l1.5 1.5 3-3" stroke-width="2"/></svg>
+            </div>
+            <h3>Policy Makers</h3>
+            <p>Stress-test strategies before committing resources. See how your plan handles the unexpected.</p>
+          </div>
+
+          <div class="audience-card">
+            <div class="audience-icon">
+              <svg viewBox="0 0 48 48" fill="none" stroke="var(--color-green)" stroke-width="2" stroke-linecap="round"><circle cx="24" cy="16" r="8"/><path d="M10 42 c0-10 6-16 14-16 s14 6 14 16"/><circle cx="36" cy="14" r="5" fill="var(--color-green-light)" stroke="var(--color-green)"/><circle cx="12" cy="14" r="5" fill="var(--color-green-light)" stroke="var(--color-green)"/></svg>
+            </div>
+            <h3>Workshop Facilitators</h3>
+            <p>Run engaging foresight sessions with teams of any size. No physical cards needed.</p>
+          </div>
+
+          <div class="audience-card">
+            <div class="audience-icon">
+              <svg viewBox="0 0 48 48" fill="none" stroke="var(--color-yellow)" stroke-width="2" stroke-linecap="round"><path d="M24 6 l3 8 h8 l-6 5 2 8-7-5-7 5 2-8-6-5 h8z" fill="var(--color-yellow-light)"/><rect x="10" y="28" width="28" height="14" rx="3"/><line x1="16" y1="33" x2="32" y2="33"/><line x1="16" y1="37" x2="26" y2="37"/></svg>
+            </div>
+            <h3>Students &amp; Young People</h3>
+            <p>Learn strategic thinking through play. Explore how decisions create chain reactions.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== CTA ==================== -->
+    <section class="cta-section">
+      <div class="container">
+        <div class="cta-inner">
+          <div class="cta-decoration" aria-hidden="true">
+            <div class="cta-card-stack">
+              <div class="cta-mini-card cta-mini--blue"></div>
+              <div class="cta-mini-card cta-mini--yellow"></div>
+              <div class="cta-mini-card cta-mini--red"></div>
+              <div class="cta-mini-card cta-mini--green"></div>
+            </div>
+          </div>
+          <h2>Ready to shape the future?</h2>
+          <p>Gather your team, set a goal, and discover how your strategy holds up against the unknown.</p>
+          <div class="hero-actions">
+            <a href="/game" class="btn btn-primary btn-large hero-btn">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 2 L14 8 L4 14Z" fill="currentColor"/></svg>
+              Open the Demo Board
+            </a>
+            <a href="/lobby" class="btn btn-secondary btn-large hero-btn">Create a Session</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<!-- GLOBAL styles: cards.css MUST be global so SVG selectors work correctly -->
+<style is:global>
+  @import '../styles/cards.css';
+</style>
+
+<!-- Page-specific scoped styles -->
+<style>
+  /* ========================= HERO ========================= */
+  .hero {
+    position: relative;
+    padding-top: 110px;
+    padding-bottom: var(--space-xl);
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(59, 130, 246, 0.08), transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(5, 150, 105, 0.06), transparent 40%),
+      radial-gradient(ellipse at 50% 100%, rgba(229, 161, 0, 0.05), transparent 50%),
+      linear-gradient(180deg, var(--color-bg-warm) 0%, var(--color-bg) 80%);
+    text-align: center;
+    overflow: hidden;
+  }
+
+  .hero-grain {
+    position: absolute;
+    inset: 0;
+    opacity: 0.35;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+    pointer-events: none;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 1;
+    padding-bottom: var(--space-xl);
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+    padding: 6px 16px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.7);
+    border: 1px solid var(--color-border);
+    margin-bottom: var(--space-xl);
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .badge-diamond {
+    width: 8px;
+    height: 8px;
+    background: var(--color-blue);
+    transform: rotate(45deg);
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+
+  .hero-title {
+    font-size: clamp(3.2rem, 9vw, 6rem);
+    font-weight: 900;
+    line-height: 0.92;
+    margin-bottom: var(--space-xl);
+    letter-spacing: -0.035em;
+  }
+
+  .title-line {
+    display: block;
+  }
+
+  .title-line--1 {
+    animation: fadeUp 0.6s ease both 0.1s;
+  }
+
+  .title-line--2 {
+    animation: fadeUp 0.6s ease both 0.2s;
+  }
+
+  .hero-accent {
+    background: linear-gradient(135deg, var(--color-blue), #6366F1, var(--color-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-subtitle {
+    font-size: 1.12rem;
+    color: var(--color-text-secondary);
+    max-width: 520px;
+    margin: 0 auto var(--space-xl);
+    line-height: 1.8;
+    animation: fadeUp 0.6s ease both 0.3s;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: var(--space-md);
+    justify-content: center;
+    flex-wrap: wrap;
+    animation: fadeUp 0.6s ease both 0.4s;
+  }
+
+  .hero-btn {
+    border-radius: 999px !important;
+    padding: 14px 28px !important;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- Hero cards row ---- */
+  .hero-cards {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    padding: var(--space-2xl) 0 var(--space-lg);
+    animation: fadeUp 0.8s ease both 0.6s;
+  }
+
+  .hero-connection-line {
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    top: 50%;
+    height: 4px;
+    transform: translateY(-50%);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .hero-cards .card {
+    z-index: 1;
+  }
+
+  .hero-card-hide-mobile { display: flex; }
+
+  @media (max-width: 860px) {
+    .hero-card-hide-mobile { display: none; }
+  }
+
+  @media (max-width: 580px) {
+    .hero-cards { gap: 10px; }
+    .hero-cards .card { width: 100px; min-height: 140px; }
+    .hero-cards .card .card-top { min-height: 56px; padding: 8px; }
+    .hero-cards .card .card-icon { width: 28px; height: 28px; }
+    .hero-cards .card .card-title { font-size: 0.62rem; }
+    .hero-cards .card .card-type-label { font-size: 0.42rem; }
+  }
+
+  /* ========================= WHAT IS THIS ========================= */
+  .what-is {
+    padding: var(--space-3xl) 0;
+    background: var(--color-bg);
+  }
+
+  .what-is-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3xl);
+    align-items: center;
+  }
+
+  .what-is-text h2 {
+    font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+    margin-bottom: var(--space-lg);
+  }
+
+  .what-is-text p {
+    color: var(--color-text-secondary);
+    font-size: 1.02rem;
+    line-height: 1.75;
+    margin-bottom: var(--space-md);
+  }
+
+  .scenario-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-xl) var(--space-xl);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .scenario-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-lg);
+  }
+
+  .scenario-beginning,
+  .scenario-end {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 0.95rem;
+    color: var(--color-text);
+    line-height: 1.55;
+    font-style: italic;
+  }
+
+  .scenario-dot {
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-top: 4px;
+  }
+
+  .scenario-dot--blue { background: var(--color-blue); }
+
+  .scenario-arrow {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-sm) 0;
+  }
+
+  .scenario-meta {
+    margin-top: var(--space-lg);
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+    text-align: center;
+  }
+
+  @media (max-width: 860px) {
+    .what-is-grid {
+      grid-template-columns: 1fr;
+      gap: var(--space-xl);
+    }
+  }
+
+  /* ========================= SECTION HEADS ========================= */
+  .section-head {
+    text-align: center;
+    margin-bottom: var(--space-2xl);
+  }
+
+  .section-tag {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-xs);
+  }
+
+  .section-head h2 {
+    font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+  }
+
+  /* ========================= CARD TYPES ========================= */
+  .card-types-section {
+    padding: var(--space-3xl) 0;
+    background:
+      linear-gradient(180deg, var(--color-bg) 0%, var(--color-bg-warm) 50%, var(--color-bg) 100%);
+  }
+
+  .types-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-xl);
+    justify-items: center;
+  }
+
+  .type-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .type-meta {
+    text-align: center;
+  }
+
+  .type-meta strong {
+    display: block;
+    font-size: 0.88rem;
+    color: var(--color-text);
+    margin-bottom: 2px;
+  }
+
+  .type-meta span {
+    font-size: 0.82rem;
+    color: var(--color-text-secondary);
+  }
+
+  @media (max-width: 960px) {
+    .types-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-2xl) var(--space-xl);
+    }
+  }
+
+  @media (max-width: 520px) {
+    .types-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ========================= HOW IT WORKS ========================= */
+  .how-section {
+    padding: var(--space-3xl) 0;
+    background: var(--color-bg);
+  }
+
+  .phases-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2px;
+    max-width: 1100px;
+    margin: 0 auto;
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    background: var(--color-border);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .phase-card {
+    background: var(--color-surface);
+    padding: var(--space-xl) var(--space-lg);
+    position: relative;
+    transition: all 0.25s ease;
+  }
+
+  .phase-card:hover {
+    background: var(--color-surface-raised);
+  }
+
+  .phase-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--phase-color);
+  }
+
+  .phase-number {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--phase-color);
+    opacity: 0.2;
+    line-height: 1;
+    margin-bottom: var(--space-md);
+  }
+
+  .phase-name {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--phase-color);
+    margin-bottom: var(--space-xs);
+  }
+
+  .phase-content h3 {
+    font-size: 1.05rem;
+    margin-bottom: var(--space-sm);
+  }
+
+  .phase-content p {
+    color: var(--color-text-secondary);
+    font-size: 0.82rem;
+    line-height: 1.6;
+    margin-bottom: var(--space-md);
+  }
+
+  .phase-example {
+    background: var(--color-surface-raised);
+    border-left: 3px solid var(--phase-color);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+    font-style: italic;
+  }
+
+  .phase-pills {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 4px 9px;
+    border-radius: var(--radius-sm);
+    font-size: 0.66rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+  }
+
+  .pill--yellow { background: var(--color-yellow-light); color: var(--color-yellow-dark); border: 1px solid rgba(229,161,0,0.2); }
+  .pill--red { background: var(--color-red-light); color: var(--color-red); border: 1px solid rgba(220,38,38,0.2); }
+  .pill--green { background: var(--color-green-light); color: var(--color-green-dark); border: 1px solid rgba(5,150,105,0.2); }
+
+  .pill--stacked {
+    margin-left: -14px;
+    transform: rotate(-3deg);
+    z-index: 1;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .pill--faded { opacity: 0.55; }
+
+  .pill-arrow { color: var(--color-text-muted); font-size: 0.78rem; }
+
+  @media (max-width: 960px) {
+    .phases-grid {
+      grid-template-columns: 1fr;
+      gap: 1px;
+    }
+    .phase-card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: var(--space-md);
+      align-items: start;
+    }
+    .phase-number {
+      margin-bottom: 0;
+      padding-top: 4px;
+    }
+  }
+
+  /* ========================= AUDIENCE ========================= */
+  .audience-section {
+    padding: var(--space-3xl) 0;
+    background:
+      linear-gradient(180deg, var(--color-bg) 0%, var(--color-bg-warm) 100%);
+  }
+
+  .audience-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-xl);
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .audience-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    text-align: center;
+    transition: all 0.25s ease;
+  }
+
+  .audience-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-border-strong);
+  }
+
+  .audience-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto var(--space-md);
+  }
+
+  .audience-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .audience-card h3 {
+    font-size: 1.05rem;
+    margin-bottom: var(--space-sm);
+  }
+
+  .audience-card p {
+    color: var(--color-text-secondary);
+    font-size: 0.88rem;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 740px) {
+    .audience-grid {
+      grid-template-columns: 1fr;
+      max-width: 400px;
+    }
+  }
+
+  /* ========================= CTA ========================= */
+  .cta-section {
+    padding: var(--space-3xl) 0 var(--space-4xl);
+  }
+
+  .cta-inner {
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .cta-decoration {
+    margin-bottom: var(--space-xl);
+    display: flex;
+    justify-content: center;
+  }
+
+  .cta-card-stack {
+    display: flex;
+    gap: 0;
+    position: relative;
+    width: 120px;
+    height: 36px;
+  }
+
+  .cta-mini-card {
+    width: 28px;
+    height: 36px;
+    border-radius: 6px;
+    position: absolute;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(255,255,255,0.6);
+  }
+
+  .cta-mini--blue { background: var(--color-blue); left: 0; transform: rotate(-12deg); z-index: 1; }
+  .cta-mini--yellow { background: var(--color-yellow); left: 24px; transform: rotate(-4deg); z-index: 2; }
+  .cta-mini--red { background: var(--color-red); left: 48px; transform: rotate(4deg); z-index: 3; }
+  .cta-mini--green { background: var(--color-green); left: 72px; transform: rotate(10deg); z-index: 4; }
+
+  .cta-inner h2 {
+    font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+    margin-bottom: var(--space-sm);
+  }
+
+  .cta-inner p {
+    color: var(--color-text-secondary);
+    font-size: 1.02rem;
+    line-height: 1.7;
+    margin-bottom: var(--space-xl);
+  }
+</style>

@@ -1,0 +1,186 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<BaseLayout title="Rules">
+  <Header currentPage="about" />
+
+  <main class="about-page">
+    <div class="about-hero">
+      <div class="container">
+        <span class="about-tag">The Rules</span>
+        <h1>How to Play</h1>
+        <p class="intro">
+          A collaborative strategic foresight exercise. Build a pathway, face disruptions,
+          and explore the consequences of your decisions.
+        </p>
+      </div>
+    </div>
+
+    <div class="container about-content">
+      <section>
+        <h2>The Four Card Types</h2>
+        <div class="card-types-list">
+          <div class="ctd" style="--cc: var(--color-blue);">
+            <div class="ctd-stripe"></div>
+            <div class="ctd-body">
+              <span class="ctd-label">Blue</span>
+              <h3>Beginning &amp; End Goal Cards</h3>
+              <p>These cards represent the start and finish of your scenario. The beginning card describes where you are now, and the end goal card describes what success looks like.</p>
+            </div>
+          </div>
+          <div class="ctd" style="--cc: var(--color-yellow);">
+            <div class="ctd-stripe"></div>
+            <div class="ctd-body">
+              <span class="ctd-label">Yellow</span>
+              <h3>Action Cards</h3>
+              <p>Action cards represent the steps you might take to achieve your goal. Choose from 20 predefined actions or create your own.</p>
+            </div>
+          </div>
+          <div class="ctd" style="--cc: var(--color-red);">
+            <div class="ctd-stripe"></div>
+            <div class="ctd-body">
+              <span class="ctd-label">Red</span>
+              <h3>Curveball Cards</h3>
+              <p>Curveball cards introduce unexpected events into your timeline. The facilitator places these on top of action cards to show where the disruption hits.</p>
+            </div>
+          </div>
+          <div class="ctd" style="--cc: var(--color-green);">
+            <div class="ctd-stripe"></div>
+            <div class="ctd-body">
+              <span class="ctd-label">Green</span>
+              <h3>Ripple Effect Cards</h3>
+              <p>Ripple effect cards represent the results and consequences of your actions. Some effects appear early, others take time to develop.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Game Flow</h2>
+        <ol class="game-flow">
+          <li>
+            <div class="gf-dot" style="--gc: var(--color-blue);"></div>
+            <div><strong>Set Up</strong><p>The group agrees on a scenario and completes the Beginning and End Goal cards.</p></div>
+          </li>
+          <li>
+            <div class="gf-dot" style="--gc: var(--color-yellow);"></div>
+            <div><strong>Plan</strong><p>Choose 3&ndash;5 initial action cards and arrange them in sequence.</p></div>
+          </li>
+          <li>
+            <div class="gf-dot" style="--gc: var(--color-red);"></div>
+            <div><strong>Curveball</strong><p>The facilitator introduces curveball cards. The group must reformulate their strategy.</p></div>
+          </li>
+          <li>
+            <div class="gf-dot" style="--gc: var(--color-green);"></div>
+            <div><strong>Ripple</strong><p>Add ripple effect cards to explore the consequences of your actions.</p></div>
+          </li>
+          <li>
+            <div class="gf-dot" style="--gc: var(--color-blue-dark);"></div>
+            <div><strong>Reflect</strong><p>Step back, review the full picture, and identify your clear next steps.</p></div>
+          </li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>Roles</h2>
+        <div class="roles">
+          <div class="role">
+            <h3>Facilitator</h3>
+            <p>Controls the game flow, introduces curveball cards, advances through phases, and guides the discussion. One per session.</p>
+          </div>
+          <div class="role">
+            <h3>Participants</h3>
+            <p>Collaboratively choose and place action cards, respond to curveballs, and add ripple effect cards.</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="cta-section">
+        <div class="cta-actions">
+          <a href="/game" class="btn btn-primary btn-large">&#9654;&ensp;Try the Demo Board</a>
+          <a href="/lobby" class="btn btn-secondary btn-large">Create or Join a Room</a>
+        </div>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>
+
+<style>
+  .about-page { padding-top: 60px; }
+
+  .about-hero {
+    text-align: center;
+    padding: var(--space-3xl) 0 var(--space-2xl);
+    background: var(--color-bg-warm);
+  }
+
+  .about-tag {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .about-hero h1 {
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    margin: var(--space-sm) 0 var(--space-md);
+  }
+
+  .intro {
+    font-size: 1.1rem;
+    color: var(--color-text-secondary);
+    max-width: 520px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+
+  .about-content { max-width: 720px; padding-bottom: var(--space-2xl); }
+
+  section { margin-top: var(--space-2xl); }
+
+  section h2 {
+    font-size: 1.5rem;
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .card-types-list { display: flex; flex-direction: column; gap: var(--space-md); }
+
+  .ctd {
+    display: flex;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+  }
+  .ctd:hover { box-shadow: var(--shadow-md); }
+
+  .ctd-stripe { width: 5px; flex-shrink: 0; background: var(--cc); }
+
+  .ctd-body { padding: var(--space-md) var(--space-lg); }
+  .ctd-label { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cc); }
+  .ctd-body h3 { font-size: 1.05rem; margin: 2px 0 var(--space-xs); }
+  .ctd-body p { color: var(--color-text-secondary); font-size: 0.92rem; line-height: 1.6; }
+
+  .game-flow { list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
+  .game-flow li { display: flex; gap: var(--space-md); align-items: flex-start; }
+  .gf-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--gc); flex-shrink: 0; margin-top: 6px; }
+  .game-flow strong { display: block; font-size: 1rem; margin-bottom: 2px; }
+  .game-flow p { color: var(--color-text-secondary); font-size: 0.92rem; line-height: 1.6; }
+
+  .roles { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); }
+  @media (max-width: 600px) { .roles { grid-template-columns: 1fr; } }
+  .role { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-lg); }
+  .role h3 { margin-bottom: var(--space-xs); }
+  .role p { color: var(--color-text-secondary); font-size: 0.92rem; line-height: 1.6; }
+
+  .cta-section { text-align: center; padding: var(--space-2xl) 0; }
+  .cta-actions { display: inline-flex; gap: var(--space-md); flex-wrap: wrap; justify-content: center; }
+</style>

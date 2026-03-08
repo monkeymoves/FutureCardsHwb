@@ -1,0 +1,257 @@
+---
+import GameLayout from '../layouts/GameLayout.astro';
+---
+
+<GameLayout title="Game">
+  <div id="game-container">
+    <header id="game-topbar">
+      <div class="topbar-left">
+        <a href="/" class="topbar-logo">
+          <span class="logo-diamond"></span>
+          <span>FUTURES</span>
+        </a>
+        <div class="topbar-divider" aria-hidden="true"></div>
+        <button id="room-code-button" class="room-code" type="button">Room</button>
+      </div>
+
+      <div class="topbar-center" aria-label="Game phases">
+        <div class="phase-pip active"></div>
+        <div class="phase-pip"></div>
+        <div class="phase-pip"></div>
+        <div class="phase-pip"></div>
+        <div class="phase-pip"></div>
+        <span id="phase-label" class="phase-label">Setup: Define your starting situation and end goal</span>
+      </div>
+
+      <div class="topbar-right">
+        <div id="participant-rail" class="participant-rail" aria-label="Session participants"></div>
+        <button id="add-participant-btn" class="topbar-btn" type="button">+ Player</button>
+        <div class="players-indicator" title="Current player">
+          <div class="player-avatar" id="player-avatar">P</div>
+        </div>
+        <button id="prev-phase-btn" class="topbar-btn" type="button" style="display: none;">← Previous</button>
+        <button id="next-phase-btn" class="topbar-btn primary" type="button">Next: Planning →</button>
+      </div>
+    </header>
+
+    <main id="board-viewport" aria-label="Game board">
+      <div id="board-surface"></div>
+
+      <div id="board-empty-prompt" class="board-empty-prompt">
+        <h3>Build the future on the table</h3>
+        <p>Place cards from the tray, click any card to edit it, and drag only when you want to reposition the board.</p>
+      </div>
+
+      <div id="zoom-controls" aria-label="Zoom controls">
+        <button id="zoom-in" class="zoom-btn" type="button" aria-label="Zoom in">+</button>
+        <div id="zoom-level" class="zoom-level">70%</div>
+        <button id="zoom-out" class="zoom-btn" type="button" aria-label="Zoom out">−</button>
+        <button id="zoom-reset" class="zoom-btn" type="button" aria-label="Reset view">⟳</button>
+      </div>
+    </main>
+
+    <aside id="card-panel">
+      <button id="panel-toggle" class="panel-toggle" type="button" aria-label="Toggle card panel">▶</button>
+
+      <div class="panel-header">
+        <div class="panel-kicker" id="panel-phase-status">Current Move</div>
+        <div class="panel-title" id="panel-title">Card Tray</div>
+        <p class="panel-copy" id="panel-copy">Click a card to place it, or drag it onto the table.</p>
+
+        <div class="panel-mode-tabs" role="tablist" aria-label="Panel modes">
+          <button class="panel-mode-tab active" type="button" data-panel-mode="cards">Cards</button>
+          <button class="panel-mode-tab" type="button" data-panel-mode="story">Notebook</button>
+        </div>
+
+        <div id="panel-tabs" class="panel-tabs" role="tablist" aria-label="Card types">
+          <button class="panel-tab" type="button" data-type="action">
+            <span class="panel-tab-title">Action</span>
+            <span class="panel-tab-copy">Build or adapt the path</span>
+          </button>
+          <button class="panel-tab" type="button" data-type="curveball">
+            <span class="panel-tab-title">Curveball</span>
+            <span class="panel-tab-copy">Pressure the pathway</span>
+          </button>
+          <button class="panel-tab" type="button" data-type="ripple">
+            <span class="panel-tab-title">Ripple</span>
+            <span class="panel-tab-copy">Track knock-on effects</span>
+          </button>
+        </div>
+
+        <div id="panel-deck-context" class="panel-deck-context-shell"></div>
+      </div>
+
+      <div id="panel-card-list" class="panel-cards"></div>
+      <div id="panel-story-view" class="panel-story-view" hidden></div>
+
+      <div class="panel-footer">
+        <div id="panel-card-count" class="panel-card-count">Loading cards...</div>
+        <div class="panel-footer-copy">Select a card on the board to edit it in a larger modal.</div>
+      </div>
+    </aside>
+
+    <div id="card-editor-modal" class="card-modal" hidden>
+      <div class="card-modal-backdrop" data-close-modal></div>
+      <div class="card-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="card-editor-title">
+        <div class="card-modal-header">
+          <div>
+            <div class="card-modal-kicker">Card Editor</div>
+            <h2 id="card-editor-title">Edit Card</h2>
+          </div>
+          <button id="card-editor-close" class="card-modal-close" type="button" aria-label="Close editor">X</button>
+        </div>
+        <div id="card-editor-content" class="card-editor-content">
+          <div class="card-inspector-empty">Select a card on the board to edit it.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</GameLayout>
+
+<style is:global>
+  @import '../styles/board.css';
+  @import '../styles/panel.css';
+  @import '../styles/cards.css';
+</style>
+
+<script>
+  import { initGame } from '../scripts/game/engine.js';
+
+  function safeStorageGet(key) {
+    try {
+      return window.localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+
+  function safeStorageSet(key, value) {
+    try {
+      window.localStorage.setItem(key, value);
+    } catch {
+      // The board still works without persistence, so ignore storage failures.
+    }
+  }
+
+  function bootGame() {
+    const ROOM_PARAM = 'room';
+    const NAME_PARAM = 'name';
+    const LAST_NAME_KEY = 'futures:last-player-name';
+
+    const params = new URLSearchParams(window.location.search);
+    const requestedRoomCode = params.get(ROOM_PARAM);
+    const roomCode = (requestedRoomCode || 'FTR-DEMO').trim().toUpperCase();
+    const playerName = (params.get(NAME_PARAM) || safeStorageGet(LAST_NAME_KEY) || 'Planner').trim();
+    const storageKey = `futures:room:${roomCode}`;
+    const roomCodeButton = document.getElementById('room-code-button');
+    const playerAvatar = document.getElementById('player-avatar');
+
+    if (!roomCodeButton || !playerAvatar) {
+      return;
+    }
+
+    safeStorageSet(LAST_NAME_KEY, playerName);
+
+    roomCodeButton.textContent = roomCode;
+    playerAvatar.textContent = playerName.slice(0, 2).toUpperCase();
+    playerAvatar.setAttribute('aria-label', playerName);
+    roomCodeButton.addEventListener('click', async () => {
+      const label = `${roomCode} copied`;
+
+      try {
+        await navigator.clipboard.writeText(roomCode);
+        roomCodeButton.textContent = label;
+      } catch {
+        roomCodeButton.textContent = roomCode;
+      }
+
+      window.setTimeout(() => {
+        roomCodeButton.textContent = roomCode;
+      }, 1200);
+    });
+
+    function loadInitialState() {
+      try {
+        const raw = safeStorageGet(storageKey);
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function buildDemoState(code) {
+      const startX = 400;
+      const step = 260;
+      const top = 1070;
+
+      return {
+        roomCode: code,
+        phase: 'planning',
+        cards: {
+          'demo-begin': {
+            cardId: 'demo-begin',
+            type: 'beginning',
+            title: 'Rising Climate Pressure',
+            description: 'A public board needs a resilient, cross-agency response plan.',
+            position: { x: startX, y: top },
+          },
+          'demo-act-1': {
+            cardId: 'demo-act-1',
+            type: 'action',
+            title: 'Commission Evidence Review',
+            description: 'Gather current climate risk data and lessons from other regions.',
+            position: { x: startX + step, y: top },
+          },
+          'demo-act-2': {
+            cardId: 'demo-act-2',
+            type: 'action',
+            title: 'Hold Stakeholder Workshop',
+            description: 'Align local services, planners, and community groups on priorities.',
+            position: { x: startX + step * 2, y: top },
+          },
+          'demo-act-3': {
+            cardId: 'demo-act-3',
+            type: 'action',
+            title: 'Draft Policy Brief',
+            description: 'Turn the workshop outputs into a concrete implementation proposal.',
+            position: { x: startX + step * 3, y: top },
+          },
+          'demo-end': {
+            cardId: 'demo-end',
+            type: 'end',
+            title: 'Adopted Adaptation Plan',
+            description: 'A shared strategy is agreed and ready for delivery.',
+            position: { x: startX + step * 4, y: top },
+          },
+          'demo-ripple': {
+            cardId: 'demo-ripple',
+            type: 'ripple',
+            title: 'Cross-departmental Collaboration',
+            description: 'The process breaks silos and creates a stronger delivery network.',
+            position: { x: startX + step * 2, y: top - 260 },
+          },
+        },
+        connections: [],
+      };
+    }
+
+    const persistedState = loadInitialState();
+
+    initGame(roomCode, {
+      playerName,
+      initialState:
+        roomCode === 'FTR-DEMO' && !requestedRoomCode
+          ? buildDemoState(roomCode)
+          : (persistedState || (roomCode === 'FTR-DEMO' ? buildDemoState(roomCode) : null)),
+      onStateChange(nextState) {
+        safeStorageSet(storageKey, JSON.stringify(nextState));
+      },
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', bootGame, { once: true });
+  } else {
+    bootGame();
+  }
+</script>

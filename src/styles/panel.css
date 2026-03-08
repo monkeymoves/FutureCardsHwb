@@ -1,0 +1,1055 @@
+/* ================================================
+   CARD PANEL (Side tray)
+   Tabbed panel for browsing & dragging cards.
+   Phase-aware: inherits --panel-phase-color from
+   #game-container[data-phase] on the board page.
+   ================================================ */
+
+/* ---- Phase-aware CSS custom properties ---- */
+/* board.css sets data-phase on #game-container;
+   these cascade down into every panel element   */
+#game-container[data-phase="setup"]       { --panel-phase-color: var(--color-blue);   --panel-phase-glow: var(--color-blue-glow);   --panel-phase-light: var(--color-blue-light); }
+#game-container[data-phase="planning"]    { --panel-phase-color: var(--color-yellow); --panel-phase-glow: var(--color-yellow-glow); --panel-phase-light: var(--color-yellow-light); }
+#game-container[data-phase="curveball"]  { --panel-phase-color: var(--color-red);    --panel-phase-glow: var(--color-red-glow);    --panel-phase-light: var(--color-red-light); }
+#game-container[data-phase="ripple"]     { --panel-phase-color: var(--color-green);  --panel-phase-glow: var(--color-green-glow);  --panel-phase-light: var(--color-green-light); }
+#game-container[data-phase="reflection"] { --panel-phase-color: var(--color-blue-dark); --panel-phase-glow: var(--color-blue-glow); --panel-phase-light: var(--color-blue-light); }
+
+/* Default (no data-phase set yet) */
+#game-container {
+  --panel-phase-color: var(--color-blue);
+  --panel-phase-glow: var(--color-blue-glow);
+  --panel-phase-light: var(--color-blue-light);
+}
+
+/* ================================================
+   Panel shell
+   ================================================ */
+
+#card-panel {
+  --panel-width: 420px;
+  position: absolute;
+  top: 64px;     /* below topbar */
+  right: 0;
+  bottom: 0;
+  width: var(--panel-width);
+  background: rgba(249, 246, 240, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-left: 1px solid rgba(214, 211, 209, 0.9);
+  box-shadow: -18px 0 40px rgba(28, 25, 23, 0.08);
+  display: flex;
+  flex-direction: column;
+  z-index: 30;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#card-panel.collapsed {
+  transform: translateX(var(--panel-width));
+}
+
+#card-panel.panel--story {
+  --panel-width: 640px;
+}
+
+/* Phase accent stripe at very top of panel */
+#card-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--panel-phase-color, var(--color-blue));
+  opacity: 0.7;
+  transition: background 0.4s ease;
+  z-index: 1;
+  border-radius: 0 0 2px 2px;
+}
+
+/* ---- Toggle button ---- */
+.panel-toggle {
+  position: absolute;
+  left: -36px;
+  top: 12px;
+  width: 36px;
+  height: 36px;
+  background: rgba(255,255,255,0.95);
+  border: 1px solid rgba(214, 211, 209, 0.9);
+  border-right: none;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  box-shadow: -2px 0 8px rgba(0,0,0,0.06);
+  transition: background 0.15s, color 0.15s;
+}
+.panel-toggle:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
+/* ================================================
+   Panel Header
+   ================================================ */
+
+.panel-header {
+  padding: 20px 18px 0;
+  padding-top: 22px; /* extra room for the accent stripe */
+}
+
+.panel-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}
+
+.panel-title {
+  font-family: var(--font-display);
+  font-size: 1.08rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.panel-copy {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  margin-bottom: 14px;
+}
+
+/* ---- Mode tabs (Card Tray / Story) ---- */
+.panel-mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.panel-mode-tab {
+  min-height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(214, 211, 209, 0.9);
+  background: rgba(255,255,255,0.65);
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s, transform 0.18s;
+}
+
+.panel-mode-tab:hover {
+  background: rgba(255,255,255,0.88);
+  color: var(--color-text);
+}
+
+.panel-mode-tab.active {
+  background: white;
+  color: var(--color-text);
+  box-shadow:
+    0 0 0 1.5px var(--panel-phase-color, var(--color-blue)),
+    0 10px 18px rgba(28, 25, 23, 0.08);
+  transform: translateY(-1px);
+}
+
+/* ================================================
+   Card-type tabs
+   ================================================ */
+
+.panel-tabs {
+  display: grid;
+  gap: 8px;
+}
+
+.panel-tab {
+  min-height: 58px;
+  padding: 12px 14px 12px 18px;
+  border-radius: 16px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s, border-color 0.15s;
+  border: 1px solid rgba(214, 211, 209, 0.8);
+  background: rgba(255,255,255,0.66);
+  position: relative;
+}
+
+.panel-tab:hover {
+  color: var(--color-text-secondary);
+  background: rgba(255,255,255,0.9);
+}
+
+.panel-tab.active {
+  background: white;
+  color: var(--color-text);
+  border-color: rgba(214, 211, 209, 0.9);
+  box-shadow: 0 14px 24px rgba(28, 25, 23, 0.08);
+}
+
+/* Coloured left-accent bar on active tab (overrides the 1px border-left with a 3px coloured one) */
+.panel-tab.active[data-type="action"]    { border-left: 3px solid var(--color-yellow); }
+.panel-tab.active[data-type="curveball"] { border-left: 3px solid var(--color-red); }
+.panel-tab.active[data-type="ripple"]    { border-left: 3px solid var(--color-green); }
+
+.panel-tab.is-disabled,
+.panel-tab:disabled {
+  color: var(--color-text-muted);
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.panel-tab-title,
+.panel-tab-copy {
+  display: block;
+}
+
+.panel-tab-title {
+  font-family: var(--font-display);
+  font-size: 0.84rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.panel-tab-copy {
+  margin-top: 3px;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Tab colour dot indicators */
+.panel-tab[data-type="action"]::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-yellow);
+}
+
+.panel-tab[data-type="curveball"]::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-red);
+}
+
+.panel-tab[data-type="ripple"]::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-green);
+}
+
+/* Offset title text to make room for the dot */
+.panel-tab[data-type] .panel-tab-title { padding-left: 16px; }
+.panel-tab[data-type] .panel-tab-copy  { padding-left: 16px; }
+
+/* ================================================
+   Deck context (phase-aware hint box)
+   ================================================ */
+
+.panel-deck-context-shell {
+  margin-top: 12px;
+}
+
+.panel-deck-context {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(214, 211, 209, 0.85);
+  background: rgba(255,255,255,0.72);
+  transition: background 0.3s, border-color 0.3s;
+}
+
+/* Tint the context box to match the active card type */
+.panel-deck-context[data-context="action"]    { background: rgba(245, 158, 11, 0.06); border-color: rgba(245, 158, 11, 0.2); }
+.panel-deck-context[data-context="curveball"] { background: rgba(220, 38, 38, 0.05);  border-color: rgba(220, 38, 38, 0.18); }
+.panel-deck-context[data-context="ripple"]    { background: rgba(5, 150, 105, 0.05);  border-color: rgba(5, 150, 105, 0.18); }
+
+.panel-deck-context-heading {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.panel-deck-context-body {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+/* ================================================
+   Focus chips (card type badges in header)
+   ================================================ */
+
+.panel-focus-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.panel-focus-chip--action,
+.panel-focus-chip--beginning,
+.panel-focus-chip--end {
+  background: rgba(245, 158, 11, 0.12);
+  color: #9a6700;
+}
+
+.panel-focus-chip--curveball {
+  background: rgba(220, 38, 38, 0.12);
+  color: var(--color-red-dark);
+}
+
+.panel-focus-chip--ripple {
+  background: rgba(5, 150, 105, 0.12);
+  color: var(--color-green-dark);
+}
+
+/* ================================================
+   Card grid (the scrollable tray)
+   ================================================ */
+
+.panel-cards {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-content: start;
+}
+
+/* Scrollbar */
+.panel-cards::-webkit-scrollbar { width: 4px; }
+.panel-cards::-webkit-scrollbar-track { background: transparent; }
+.panel-cards::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+/* ================================================
+   Panel card (compact card in tray)
+   ================================================ */
+
+@keyframes panelCardIn {
+  from { opacity: 0; transform: scale(0.88) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.panel-card {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  animation: panelCardIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Stagger the animation for grid items */
+.panel-card:nth-child(1)  { animation-delay: 0.02s; }
+.panel-card:nth-child(2)  { animation-delay: 0.04s; }
+.panel-card:nth-child(3)  { animation-delay: 0.06s; }
+.panel-card:nth-child(4)  { animation-delay: 0.08s; }
+.panel-card:nth-child(5)  { animation-delay: 0.10s; }
+.panel-card:nth-child(6)  { animation-delay: 0.12s; }
+.panel-card:nth-child(7)  { animation-delay: 0.14s; }
+.panel-card:nth-child(8)  { animation-delay: 0.16s; }
+.panel-card:nth-child(9)  { animation-delay: 0.18s; }
+.panel-card:nth-child(10) { animation-delay: 0.20s; }
+
+.panel-card.card--mini {
+  width: 100%;
+  min-height: 188px;
+}
+
+.panel-card:hover {
+  transform: translateY(-4px) rotate(-1deg);
+}
+
+.panel-card:active {
+  cursor: grabbing;
+  box-shadow: var(--shadow-md);
+}
+
+.panel-card.card--mini .card-top    { min-height: 92px; }
+.panel-card.card--mini .card-icon   { width: 36px; height: 36px; }
+.panel-card.card--mini .card-type-label { font-size: 0.54rem; }
+.panel-card.card--mini .card-body   { padding-bottom: 12px; }
+.panel-card.card--mini .card-title  { font-size: 0.82rem; line-height: 1.25; }
+
+/* ================================================
+   Phase action button (prominent CTA in tray)
+   ================================================ */
+
+.panel-phase-action {
+  grid-column: 1 / -1;
+  min-height: 58px;
+  border-radius: 16px;
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.12),
+    rgba(255, 255, 255, 0.92)
+  );
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: 0 12px 24px rgba(28, 25, 23, 0.08);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.3s, border-color 0.3s;
+}
+
+/* Phase-responsive colour */
+#game-container[data-phase="planning"]   .panel-phase-action { border-color: rgba(229, 161, 0, 0.28);  background: linear-gradient(135deg, rgba(229, 161, 0, 0.1), rgba(255,255,255,0.92)); }
+#game-container[data-phase="curveball"] .panel-phase-action  { border-color: rgba(220, 38, 38, 0.24);  background: linear-gradient(135deg, rgba(220, 38, 38, 0.09), rgba(255,255,255,0.92)); }
+#game-container[data-phase="ripple"]    .panel-phase-action  { border-color: rgba(5, 150, 105, 0.24); background: linear-gradient(135deg, rgba(5, 150, 105, 0.09), rgba(255,255,255,0.92)); }
+
+.panel-phase-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 28px rgba(28, 25, 23, 0.12);
+}
+
+.panel-phase-action:disabled {
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* ================================================
+   Custom card button
+   ================================================ */
+
+.panel-create-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  border: 2px dashed rgba(214, 211, 209, 0.9);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.46);
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s, transform 0.2s;
+  width: 100%;
+  min-height: 172px;
+  grid-column: 1 / -1;
+}
+
+.panel-create-btn::before {
+  content: '+';
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0.35;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.panel-create-btn:hover {
+  border-color: var(--color-blue);
+  color: var(--color-blue);
+  background: var(--color-blue-light);
+  transform: translateY(-2px);
+}
+
+.panel-create-btn:hover::before {
+  opacity: 0.8;
+  transform: rotate(90deg) scale(1.1);
+}
+
+/* ================================================
+   Empty state
+   ================================================ */
+
+.panel-empty-state {
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.75);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  grid-column: 1 / -1;
+}
+
+/* ================================================
+   Panel Footer
+   ================================================ */
+
+.panel-footer {
+  padding: 14px;
+  border-top: 1px solid rgba(214, 211, 209, 0.85);
+  background: rgba(255,255,255,0.42);
+  display: grid;
+  gap: 12px;
+}
+
+#card-panel.panel--story .panel-footer {
+  gap: 8px;
+}
+
+.panel-card-count {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.panel-footer-copy {
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+/* ================================================
+   Story / Notebook panel
+   ================================================ */
+
+.panel-story-view {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 20px 20px;
+}
+
+#card-panel.panel--story .panel-story-view {
+  display: block !important;
+}
+
+#card-panel.panel--story .panel-cards,
+#card-panel.panel--story .panel-tabs,
+#card-panel.panel--story .panel-deck-context-shell,
+#card-panel.panel--story .panel-card-count {
+  display: none !important;
+}
+
+.story-panel-title {
+  font-family: var(--font-display);
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 6px;
+}
+
+.story-panel-copy {
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  margin-bottom: 14px;
+}
+
+/* Story action buttons */
+.story-panel-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.story-panel-btn {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(214, 211, 209, 0.9);
+  background: rgba(255,255,255,0.92);
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+}
+
+.story-panel-btn:hover {
+  background: white;
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(28, 25, 23, 0.08);
+}
+
+.story-panel-btn--primary {
+  background: var(--color-text);
+  color: white;
+  border-color: transparent;
+}
+
+.story-panel-btn--primary:hover {
+  background: #2C2926;
+  color: white;
+  border-color: transparent;
+}
+
+/* ---- Story notebook card ---- */
+.story-notebook {
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(214, 211, 209, 0.9);
+  background: rgba(255,255,255,0.78);
+  margin-bottom: 16px;
+}
+
+.story-notebook-header {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.story-phase-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--color-blue-dark);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Phase-coloured tags */
+.story-phase-tag[data-phase="planning"]    { background: rgba(229, 161, 0, 0.12);   color: var(--color-yellow-dark); }
+.story-phase-tag[data-phase="curveball"]  { background: rgba(220, 38, 38, 0.1);    color: var(--color-red-dark); }
+.story-phase-tag[data-phase="ripple"]     { background: rgba(5, 150, 105, 0.1);    color: var(--color-green-dark); }
+.story-phase-tag[data-phase="reflection"] { background: rgba(30, 64, 175, 0.1);    color: var(--color-blue-dark); }
+
+.story-notebook-title {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.story-notebook-hint {
+  margin-top: 8px;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+/* ---- Highlight stats row ---- */
+.story-highlights {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.story-highlight {
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(214, 211, 209, 0.88);
+  background: rgba(255,255,255,0.74);
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+
+.story-highlight:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(28, 25, 23, 0.07);
+}
+
+.story-highlight-value {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.story-highlight-label {
+  margin-top: 4px;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ---- Story sections ---- */
+.story-section {
+  margin-bottom: 14px;
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(214, 211, 209, 0.88);
+  background: rgba(255,255,255,0.72);
+}
+
+.story-section--conclusion {
+  background: linear-gradient(180deg, rgba(59,130,246,0.08), rgba(255,255,255,0.78));
+}
+
+.story-section-title {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Coloured dot before section title */
+.story-section-title::before {
+  content: '';
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--panel-phase-color, var(--color-blue));
+  opacity: 0.6;
+}
+
+.story-row + .story-row {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(214, 211, 209, 0.72);
+}
+
+.story-row-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.story-row-body {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.story-panel-pre {
+  white-space: pre-wrap;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--color-text);
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.78);
+  border: 1px solid rgba(214, 211, 209, 0.9);
+}
+
+/* ================================================
+   Phase note / card note inputs
+   ================================================ */
+
+.panel-notebook,
+.card-inspector {
+  border: 1px solid rgba(214, 211, 209, 0.9);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 12px;
+}
+
+.panel-note-prompt,
+.card-inspector-prompt {
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+}
+
+.panel-note-input,
+.card-note-input {
+  width: 100%;
+  border: 1px solid rgba(214, 211, 209, 0.95);
+  border-radius: 12px;
+  padding: 10px 12px;
+  resize: vertical;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--color-text);
+  font: inherit;
+  line-height: 1.45;
+  min-height: 84px;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+
+.panel-note-input:focus,
+.card-note-input:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.55);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+/* ================================================
+   Card Inspector (side-panel selected-card editor)
+   ================================================ */
+
+.card-inspector-empty {
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.card-inspector-heading {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}
+
+.card-inspector-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  margin: 10px 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.card-inspector-title {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.card-inspector-meta {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+  text-transform: capitalize;
+}
+
+.card-title-input,
+.card-description-input,
+.card-owner-select {
+  width: 100%;
+  border: 1px solid rgba(214, 211, 209, 0.95);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--color-text);
+  font: inherit;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+
+.card-description-input {
+  resize: vertical;
+  min-height: 82px;
+}
+
+.card-title-input:focus,
+.card-description-input:focus,
+.card-owner-select:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.55);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.card-inspector-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.card-inspector-btn {
+  flex: 1;
+  min-height: 38px;
+  border-radius: 999px;
+  border: 1px solid rgba(214, 211, 209, 0.95);
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--color-text-secondary);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+.card-inspector-btn:hover {
+  background: white;
+  color: var(--color-text);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(28, 25, 23, 0.08);
+}
+
+.card-inspector-btn--danger {
+  color: var(--color-red-dark);
+  border-color: rgba(220, 38, 38, 0.22);
+  background: rgba(220, 38, 38, 0.06);
+}
+
+.card-inspector-btn--danger:hover {
+  background: rgba(220, 38, 38, 0.12);
+  color: var(--color-red-dark);
+}
+
+/* ================================================
+   Card Editor Modal
+   ================================================ */
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 16px)) scale(0.96); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.card-modal[hidden] {
+  display: none;
+}
+
+.card-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+}
+
+.card-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 25, 23, 0.28);
+  backdrop-filter: blur(8px);
+  animation: backdropIn 0.22s ease forwards;
+}
+
+.card-modal-dialog {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(560px, calc(100vw - 48px));
+  max-height: calc(100vh - 120px);
+  transform: translate(-50%, -50%);
+  overflow: auto;
+  border-radius: 28px;
+  border: 1px solid rgba(214, 211, 209, 0.92);
+  background: rgba(248, 244, 236, 0.98);
+  box-shadow:
+    0 28px 80px rgba(28, 25, 23, 0.24),
+    0 0 0 1px rgba(255,255,255,0.5) inset;
+  padding: 22px;
+  animation: modalIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.card-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.card-modal-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}
+
+.card-modal-header h2 {
+  font-size: 1.3rem;
+}
+
+.card-modal-close {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid rgba(214, 211, 209, 0.92);
+  background: rgba(255,255,255,0.92);
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+
+.card-modal-close:hover {
+  background: white;
+  color: var(--color-text);
+  transform: rotate(90deg) scale(1.05);
+}
+
+.card-editor-content {
+  display: grid;
+  gap: 6px;
+}
+
+/* ================================================
+   Drag Ghost
+   ================================================ */
+
+.drag-ghost {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.9;
+  transform: rotate(-3deg) scale(1.05);
+  filter:
+    drop-shadow(0 16px 28px rgba(0,0,0,0.22))
+    drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+  transition: transform 0.12s ease;
+}
+
+/* ================================================
+   Responsive overrides
+   ================================================ */
+
+@media (max-width: 1180px) {
+  .panel-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .story-highlights {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  #card-panel {
+    --panel-width: 360px;
+  }
+  #card-panel.panel--story {
+    --panel-width: 100vw;
+  }
+}

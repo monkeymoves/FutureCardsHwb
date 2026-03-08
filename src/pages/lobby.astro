@@ -1,0 +1,625 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<BaseLayout title="Start a Session">
+  <Header currentPage="play" />
+
+  <main class="lobby-page">
+    <!-- Decorative background card stack -->
+    <div class="lobby-bg-decoration" aria-hidden="true">
+      <div class="lobby-bg-card lobby-bg-card--1"></div>
+      <div class="lobby-bg-card lobby-bg-card--2"></div>
+      <div class="lobby-bg-card lobby-bg-card--3"></div>
+      <div class="lobby-bg-card lobby-bg-card--4"></div>
+    </div>
+
+    <div class="lobby-container">
+      <!-- Hero text -->
+      <div class="lobby-hero">
+        <div class="lobby-badge">
+          <span class="badge-dot"></span>
+          Session Setup
+        </div>
+        <h1 class="lobby-title">
+          <span class="lobby-title-line">Gather your</span>
+          <span class="lobby-title-line lobby-title-accent">team.</span>
+        </h1>
+        <p class="lobby-subtitle">
+          Create a new session or jump into an existing room.
+          No accounts. No setup. Just start planning.
+        </p>
+        <a href="/game" class="demo-link">
+          <span class="demo-link-icon">&#9654;</span>
+          Solo? Try the demo board first
+        </a>
+      </div>
+
+      <!-- Session cards -->
+      <div class="lobby-options">
+
+        <!-- CREATE -->
+        <div class="lobby-option lobby-option--create">
+          <div class="lobby-option-header">
+            <div class="lobby-option-icon lobby-option-icon--blue">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="9"/><line x1="11" y1="7" x2="11" y2="15"/><line x1="7" y1="11" x2="15" y2="11"/></svg>
+            </div>
+            <div>
+              <div class="lobby-option-kicker">New session</div>
+              <h2 class="lobby-option-title">Create a Room</h2>
+            </div>
+          </div>
+          <p class="lobby-option-desc">
+            Generate a unique room code, define your challenge, and start building the future together.
+          </p>
+          <form id="create-form" class="lobby-form">
+            <div class="lobby-field">
+              <label for="create-name">Your name</label>
+              <input id="create-name" name="name" type="text" maxlength="32" placeholder="e.g. Sam (Facilitator)" autocomplete="name" />
+            </div>
+            <button type="submit" class="lobby-btn lobby-btn--primary">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 7 L12 7 M8 3 L12 7 L8 11"/></svg>
+              Create session
+            </button>
+            <div id="create-status" class="lobby-status" aria-live="polite"></div>
+          </form>
+        </div>
+
+        <!-- JOIN -->
+        <div class="lobby-option lobby-option--join">
+          <div class="lobby-option-header">
+            <div class="lobby-option-icon lobby-option-icon--green">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M13 3 L19 11 L13 19"/><path d="M3 11 L19 11"/></svg>
+            </div>
+            <div>
+              <div class="lobby-option-kicker">Existing session</div>
+              <h2 class="lobby-option-title">Join a Room</h2>
+            </div>
+          </div>
+          <p class="lobby-option-desc">
+            Got a room code from your facilitator? Enter it below to join the session in progress.
+          </p>
+          <form id="join-form" class="lobby-form">
+            <div class="lobby-field">
+              <label for="join-name">Your name</label>
+              <input id="join-name" name="name" type="text" maxlength="32" placeholder="e.g. Alex" autocomplete="name" />
+            </div>
+            <div class="lobby-field">
+              <label for="room-code">Room code</label>
+              <input id="room-code" name="room" type="text" maxlength="8" placeholder="FTR-ABCD" autocomplete="off" spellcheck="false" />
+            </div>
+            <button type="submit" class="lobby-btn lobby-btn--green">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 7 L12 7 M8 3 L12 7 L8 11"/></svg>
+              Join session
+            </button>
+            <div id="join-status" class="lobby-status" aria-live="polite"></div>
+          </form>
+        </div>
+
+        <!-- Steps overview -->
+        <div class="lobby-about">
+          <div class="lobby-about-steps">
+            <div class="lobby-about-step">
+              <div class="lobby-step-num" style="--sc: var(--color-blue);">01</div>
+              <div class="lobby-step-text">Define your challenge and end goal</div>
+            </div>
+            <div class="lobby-about-step">
+              <div class="lobby-step-num" style="--sc: var(--color-yellow);">02</div>
+              <div class="lobby-step-text">Build a pathway with action cards</div>
+            </div>
+            <div class="lobby-about-step">
+              <div class="lobby-step-num" style="--sc: var(--color-red);">03</div>
+              <div class="lobby-step-text">Face curveballs &amp; adapt your plan</div>
+            </div>
+            <div class="lobby-about-step">
+              <div class="lobby-step-num" style="--sc: var(--color-green);">04</div>
+              <div class="lobby-step-text">See the ripple effects of every decision</div>
+            </div>
+          </div>
+          <div class="lobby-about-note">
+            Sessions save locally per room code. Multiplayer sync coming soon.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+  .lobby-page {
+    min-height: 100vh;
+    padding-top: 70px;
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse at 10% 20%, rgba(59, 130, 246, 0.08), transparent 40%),
+      radial-gradient(ellipse at 90% 80%, rgba(5, 150, 105, 0.06), transparent 40%),
+      linear-gradient(180deg, var(--color-bg-warm) 0%, var(--color-bg) 60%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lobby-bg-decoration {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .lobby-bg-card {
+    position: absolute;
+    border-radius: 16px;
+  }
+
+  .lobby-bg-card--1 {
+    width: 180px; height: 240px;
+    background: var(--color-blue);
+    opacity: 0.06;
+    top: 8%; left: 4%;
+    transform: rotate(-18deg);
+  }
+
+  .lobby-bg-card--2 {
+    width: 140px; height: 190px;
+    background: var(--color-yellow);
+    opacity: 0.07;
+    top: 20%; left: 10%;
+    transform: rotate(-8deg);
+  }
+
+  .lobby-bg-card--3 {
+    width: 160px; height: 220px;
+    background: var(--color-red);
+    opacity: 0.06;
+    top: 10%; right: 6%;
+    transform: rotate(14deg);
+  }
+
+  .lobby-bg-card--4 {
+    width: 130px; height: 175px;
+    background: var(--color-green);
+    opacity: 0.07;
+    top: 25%; right: 14%;
+    transform: rotate(5deg);
+  }
+
+  .lobby-container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: var(--space-3xl) var(--space-lg);
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: var(--space-3xl);
+    align-items: start;
+  }
+
+  .lobby-hero {
+    padding-top: var(--space-lg);
+    position: sticky;
+    top: 100px;
+  }
+
+  .lobby-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.72);
+    border: 1px solid var(--color-border);
+    margin-bottom: var(--space-lg);
+  }
+
+  .badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-green);
+    box-shadow: 0 0 6px rgba(5, 150, 105, 0.5);
+    animation: dot-pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes dot-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  .lobby-title {
+    font-size: clamp(2.8rem, 5.5vw, 4.5rem);
+    font-weight: 900;
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    margin-bottom: var(--space-lg);
+  }
+
+  .lobby-title-line { display: block; }
+
+  .lobby-title-accent {
+    background: linear-gradient(135deg, var(--color-blue), #6366f1, var(--color-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .lobby-subtitle {
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+    line-height: 1.75;
+    max-width: 380px;
+    margin-bottom: var(--space-xl);
+  }
+
+  .demo-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--color-blue);
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.15);
+    transition: all 0.2s ease;
+    text-decoration: none;
+  }
+
+  .demo-link:hover {
+    background: rgba(59, 130, 246, 0.14);
+    text-decoration: none;
+    transform: translateX(3px);
+  }
+
+  .demo-link-icon { font-size: 0.65rem; opacity: 0.7; }
+
+  /* ---- Options ---- */
+  .lobby-options {
+    display: grid;
+    gap: var(--space-md);
+  }
+
+  .lobby-option {
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-xl);
+    box-shadow: var(--shadow-md);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .lobby-option:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+  }
+
+  .lobby-option--create { border-top: 3px solid var(--color-blue); }
+  .lobby-option--join { border-top: 3px solid var(--color-green); }
+
+  .lobby-option-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+
+  .lobby-option-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .lobby-option-icon--blue {
+    background: var(--color-blue);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.22);
+  }
+
+  .lobby-option-icon--green {
+    background: var(--color-green);
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+  }
+
+  .lobby-option-kicker {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin-bottom: 2px;
+  }
+
+  .lobby-option-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  .lobby-option-desc {
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: var(--space-lg);
+  }
+
+  /* ---- Forms ---- */
+  .lobby-form {
+    display: grid;
+    gap: var(--space-md);
+  }
+
+  .lobby-field { display: grid; gap: 6px; }
+
+  .lobby-field label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .lobby-field input {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+    font-size: 0.95rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .lobby-field input::placeholder { color: var(--color-text-muted); }
+
+  .lobby-field input:focus {
+    outline: none;
+    border-color: var(--color-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  #room-code {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ---- Buttons ---- */
+  .lobby-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+  }
+
+  .lobby-btn--primary {
+    background: var(--color-blue);
+    color: white;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.22);
+  }
+
+  .lobby-btn--primary:hover {
+    background: var(--color-blue-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.28);
+  }
+
+  .lobby-btn--green {
+    background: var(--color-green);
+    color: white;
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.18);
+  }
+
+  .lobby-btn--green:hover {
+    background: var(--color-green-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(5, 150, 105, 0.22);
+  }
+
+  /* ---- Status ---- */
+  .lobby-status {
+    min-height: 1.2em;
+    font-size: 0.84rem;
+    color: var(--color-red-dark);
+  }
+
+  .lobby-status[data-tone="ok"] { color: var(--color-green-dark); }
+
+  /* ---- About steps ---- */
+  .lobby-about {
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-lg) var(--space-xl);
+  }
+
+  .lobby-about-steps {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+
+  .lobby-about-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .lobby-step-num {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: var(--sc, var(--color-blue));
+    opacity: 0.5;
+    line-height: 1;
+    flex-shrink: 0;
+    width: 30px;
+  }
+
+  .lobby-step-text {
+    font-size: 0.82rem;
+    color: var(--color-text-secondary);
+    line-height: 1.45;
+    padding-top: 2px;
+  }
+
+  .lobby-about-note {
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-border);
+    font-size: 0.76rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+  }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 860px) {
+    .lobby-container {
+      grid-template-columns: 1fr;
+      gap: var(--space-xl);
+      padding: var(--space-2xl) var(--space-lg) var(--space-3xl);
+    }
+
+    .lobby-hero {
+      padding-top: 0;
+      text-align: center;
+      position: static;
+    }
+
+    .lobby-badge { margin: 0 auto var(--space-lg); }
+
+    .lobby-subtitle { margin-inline: auto; }
+
+    .lobby-bg-card--1,
+    .lobby-bg-card--2 { left: -8%; }
+  }
+
+  @media (max-width: 520px) {
+    .lobby-about-steps { grid-template-columns: 1fr; }
+    .lobby-bg-card { display: none; }
+  }
+</style>
+
+<script>
+  import { generateRoomCode } from '../scripts/utils/id.js';
+
+  function safeStorageGet(key) {
+    try {
+      return window.localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+
+  function safeStorageSet(key, value) {
+    try {
+      window.localStorage.setItem(key, value);
+    } catch {
+      // Falling back to stateless navigation is acceptable in the lobby.
+    }
+  }
+
+  function bootLobby() {
+    const STORAGE_KEY = 'futures:last-player-name';
+    const ROOM_CODE_PATTERN = /^FTR-[A-Z2-9]{4}$/;
+
+    const createForm = document.getElementById('create-form');
+    const joinForm = document.getElementById('join-form');
+    const createNameInput = document.getElementById('create-name');
+    const joinNameInput = document.getElementById('join-name');
+    const roomCodeInput = document.getElementById('room-code');
+    const createStatus = document.getElementById('create-status');
+    const joinStatus = document.getElementById('join-status');
+
+    if (!createNameInput || !joinNameInput || !roomCodeInput || !createStatus || !joinStatus) {
+      return;
+    }
+
+    const savedName = safeStorageGet(STORAGE_KEY) || '';
+    createNameInput.value = savedName;
+    joinNameInput.value = savedName;
+
+    function normaliseName(value) {
+      return value.trim().slice(0, 32);
+    }
+
+    function normaliseRoomCode(value) {
+      return value.trim().toUpperCase();
+    }
+
+    function setStatus(element, message, tone = 'error') {
+      element.textContent = message;
+      element.dataset.tone = tone;
+    }
+
+    function persistName(name) {
+      safeStorageSet(STORAGE_KEY, name);
+    }
+
+    function goToRoom(roomCode, name) {
+      const url = new URL('/game', window.location.origin);
+      url.searchParams.set('room', roomCode);
+      url.searchParams.set('name', name);
+      window.location.assign(url.toString());
+    }
+
+    createForm?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const name = normaliseName(createNameInput.value) || 'Planner';
+      const roomCode = generateRoomCode();
+      persistName(name);
+      setStatus(createStatus, `Opening ${roomCode}...`, 'ok');
+      goToRoom(roomCode, name);
+    });
+
+    joinForm?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const name = normaliseName(joinNameInput.value) || 'Planner';
+      const roomCode = normaliseRoomCode(roomCodeInput.value);
+
+      if (!ROOM_CODE_PATTERN.test(roomCode)) {
+        setStatus(joinStatus, 'Enter a room code in the format FTR-ABCD.');
+        return;
+      }
+
+      persistName(name);
+      setStatus(joinStatus, `Joining ${roomCode}...`, 'ok');
+      goToRoom(roomCode, name);
+    });
+
+    roomCodeInput.addEventListener('input', () => {
+      roomCodeInput.value = normaliseRoomCode(roomCodeInput.value);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', bootLobby, { once: true });
+  } else {
+    bootLobby();
+  }
+</script>
