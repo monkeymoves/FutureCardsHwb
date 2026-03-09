@@ -57,7 +57,7 @@ import Footer from '../components/Footer.astro';
           <form id="create-form" class="lobby-form">
             <div class="lobby-field">
               <label for="create-name">Your name</label>
-              <input id="create-name" name="name" type="text" maxlength="32" placeholder="e.g. Sam (Facilitator)" autocomplete="name" />
+              <input id="create-name" name="name" type="text" maxlength="32" placeholder="e.g. Sam (Facilitator)" autocomplete="name" required />
             </div>
             <button type="submit" class="lobby-btn lobby-btn--primary">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 7 L12 7 M8 3 L12 7 L8 11"/></svg>
@@ -84,7 +84,7 @@ import Footer from '../components/Footer.astro';
           <form id="join-form" class="lobby-form">
             <div class="lobby-field">
               <label for="join-name">Your name</label>
-              <input id="join-name" name="name" type="text" maxlength="32" placeholder="e.g. Alex" autocomplete="name" />
+              <input id="join-name" name="name" type="text" maxlength="32" placeholder="e.g. Alex" autocomplete="name" required />
             </div>
             <div class="lobby-field">
               <label for="room-code">Room code</label>
@@ -590,7 +590,8 @@ import Footer from '../components/Footer.astro';
 
     createForm?.addEventListener('submit', (event) => {
       event.preventDefault();
-      const name = normaliseName(createNameInput.value) || 'Planner';
+      const name = normaliseName(createNameInput.value);
+      if (!name) { setStatus(createStatus, 'Please enter your name.'); return; }
       const roomCode = generateRoomCode();
       persistName(name);
       setStatus(createStatus, `Opening ${roomCode}...`, 'ok');
@@ -599,7 +600,8 @@ import Footer from '../components/Footer.astro';
 
     joinForm?.addEventListener('submit', (event) => {
       event.preventDefault();
-      const name = normaliseName(joinNameInput.value) || 'Planner';
+      const name = normaliseName(joinNameInput.value);
+      if (!name) { setStatus(joinStatus, 'Please enter your name.'); return; }
       const roomCode = normaliseRoomCode(roomCodeInput.value);
 
       if (!ROOM_CODE_PATTERN.test(roomCode)) {
