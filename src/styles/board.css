@@ -209,6 +209,11 @@
   padding: 7px 10px;
 }
 
+/* Hidden during phases where a button is irrelevant (e.g. Tidy/Link in setup) */
+.topbar-btn--hidden {
+  display: none !important;
+}
+
 .participant-rail {
   display: flex;
   align-items: center;

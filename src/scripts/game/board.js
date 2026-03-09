@@ -132,6 +132,9 @@ export function createBoard(viewport, surface) {
       rightInset = 0,
       topInset = 0,
       bottomInset = 0,
+      // minScale: prevent zooming out further than this value even if content
+      // is very spread out. Useful for setup (only 2 cards, wide apart).
+      minScale: minScaleOption = MIN_SCALE,
     } = options;
 
     // Find bounding box of all cards
@@ -149,7 +152,7 @@ export function createBoard(viewport, surface) {
     const vh = viewport.clientHeight - topInset - bottomInset;
 
     scale = Math.min(vw / contentW, vh / contentH, 1.0);
-    scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale * 0.85));
+    scale = Math.max(minScaleOption, Math.min(MAX_SCALE, scale * 0.85));
     panX = leftInset + (vw - contentW * scale) / 2 - minX * scale + 100 * scale;
     panY = topInset + (vh - contentH * scale) / 2 - minY * scale + 100 * scale;
     applyTransform();

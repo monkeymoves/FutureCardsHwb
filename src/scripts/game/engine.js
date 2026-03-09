@@ -516,10 +516,13 @@ export function initGame(roomCode, options = {}) {
     const showCards = panelMode === 'cards';
     const showStory = panelMode === 'story';
     const showInspect = panelMode === 'inspect';
+    const isSetup = phases.getCurrentPhase().id === 'setup';
 
     cardPanel?.classList.toggle('panel--story', showStory);
     cardPanel?.classList.toggle('panel--cards', showCards);
     cardPanel?.classList.toggle('panel--inspect', showInspect);
+    // Modifier: hide all card-deck chrome during setup phase
+    cardPanel?.classList.toggle('panel--setup', isSetup && showCards);
 
     panelCards?.toggleAttribute('hidden', !showCards);
     panelStoryView?.toggleAttribute('hidden', !showStory);
@@ -1080,6 +1083,11 @@ export function initGame(roomCode, options = {}) {
         nextPhaseBtn.classList.toggle('is-pulsing', index === 0);
       }
     }
+    // Hide board tools that are irrelevant during setup (no removable cards yet).
+    const isSetup = phase.id === 'setup';
+    document.getElementById('tidy-board-btn')?.classList.toggle('topbar-btn--hidden', isSetup);
+    document.getElementById('connect-mode-btn')?.classList.toggle('topbar-btn--hidden', isSetup);
+
     // NOTE: showPhaseAnnouncement is intentionally NOT called here.
     // It is called explicitly from the Next Phase button click handler
     // (and from the setup guide CTA) to avoid firing during state restoration.
@@ -1171,27 +1179,31 @@ export function initGame(roomCode, options = {}) {
       const phaseId = phases.getCurrentPhase().id;
 
       if (phaseId === 'setup') {
-        // Setup guide: numbered steps + big CTA button
+        // Setup guide: facilitation prompt + numbered steps + CTA
         const guide = document.createElement('div');
         guide.className = 'panel-setup-guide';
 
-        const icon = document.createElement('div');
-        icon.className = 'panel-setup-icon';
-        icon.textContent = '◈';
-        guide.appendChild(icon);
+        // "Ask the group" facilitation callout
+        const ask = document.createElement('div');
+        ask.className = 'panel-setup-ask';
+        const askLabel = document.createElement('div');
+        askLabel.className = 'panel-setup-ask-label';
+        askLabel.textContent = 'Ask the group';
+        const askText = document.createElement('div');
+        askText.className = 'panel-setup-ask-text';
+        askText.textContent = PHASE_FACILITATION_PROMPTS.setup;
+        ask.appendChild(askLabel);
+        ask.appendChild(askText);
+        guide.appendChild(ask);
 
-        const heading = document.createElement('div');
-        heading.className = 'panel-setup-heading';
-        heading.textContent = 'Frame the future';
-        guide.appendChild(heading);
-
+        // Numbered steps
         const steps = document.createElement('div');
         steps.className = 'panel-setup-steps';
 
         [
           'Click the blue START card on the board and describe the challenge you face right now.',
           'Click the blue END card and describe the future you want to reach in 5–10 years.',
-          'When the group agrees on the framing, click below to start building your pathway.',
+          'When the group agrees on the framing, advance to begin building your pathway.',
         ].forEach((text, i) => {
           const step = document.createElement('div');
           step.className = 'panel-setup-step';
@@ -1209,6 +1221,11 @@ export function initGame(roomCode, options = {}) {
           steps.appendChild(step);
         });
         guide.appendChild(steps);
+
+        // Spacer pushes button to bottom
+        const spacer = document.createElement('div');
+        spacer.className = 'panel-setup-spacer';
+        guide.appendChild(spacer);
 
         const nextBtn = document.createElement('button');
         nextBtn.className = 'panel-setup-next';
@@ -1626,6 +1643,9 @@ export function initGame(roomCode, options = {}) {
       rightInset: 580,   // updated for wider panel (560px + padding)
       topInset: 110,
       bottomInset: 110,
+      // Don't zoom below 65% — with only 2 spread-apart anchor cards in
+      // setup, the fit would otherwise produce a distracting ~30% zoom.
+      minScale: 0.65,
     });
   }
 

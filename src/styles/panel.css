@@ -415,93 +415,7 @@
    the framing step and provide a big CTA button.
    ================================================ */
 
-.panel-setup-guide {
-  padding: 24px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 14px;
-  animation: panelCardIn 0.3s ease both;
-}
-
-.panel-setup-icon {
-  font-size: 2.2rem;
-  color: var(--color-blue);
-  line-height: 1;
-  opacity: 0.8;
-}
-
-.panel-setup-heading {
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: var(--color-text);
-}
-
-.panel-setup-steps {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-}
-
-.panel-setup-step {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid var(--color-border);
-}
-
-.panel-setup-step-num {
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--color-blue);
-  color: white;
-  font-family: var(--font-display);
-  font-size: 0.7rem;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 1px;
-}
-
-.panel-setup-step-text {
-  font-size: 0.82rem;
-  color: var(--color-text-secondary);
-  line-height: 1.45;
-}
-
-.panel-setup-next {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 14px 22px;
-  background: var(--color-blue);
-  color: white;
-  border: none;
-  border-radius: 999px;
-  font-family: var(--font-display);
-  font-size: 0.92rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.28);
-  margin-top: 4px;
-}
-
-.panel-setup-next:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(59, 130, 246, 0.38);
-}
+/* panel-setup-* rules moved to the panel--setup block below */
 
 /* ================================================
    Actions bar (Random Draw + Create Custom)
@@ -1436,6 +1350,142 @@
     drop-shadow(0 16px 28px rgba(0,0,0,0.22))
     drop-shadow(0 4px 8px rgba(0,0,0,0.1));
   transition: transform 0.12s ease;
+}
+
+/* ================================================
+   Setup-phase panel mode (panel--setup modifier)
+   Hides all card-deck chrome and lets the setup
+   guide fill the entire panel body.
+   ================================================ */
+
+#card-panel.panel--setup .panel-kicker,
+#card-panel.panel--setup .panel-copy,
+#card-panel.panel--setup .panel-mode-tabs,
+#card-panel.panel--setup #panel-tabs,
+#card-panel.panel--setup .panel-faci-prompt,
+#card-panel.panel--setup .panel-deck-context-shell {
+  display: none !important;
+}
+
+/* Bigger, bolder title in setup — sole header element */
+#card-panel.panel--setup .panel-title {
+  font-size: 1.32rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 0;
+}
+
+/* Let the card area grow to fill remaining height */
+#card-panel.panel--setup .panel-cards {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow-y: auto;
+}
+
+/* ---- Setup guide layout (redesigned) ---- */
+.panel-setup-guide {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 20px 24px;
+  gap: 0;
+  animation: panelCardIn 0.35s ease both;
+}
+
+.panel-setup-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  border-radius: 14px;
+  background: rgba(59, 130, 246, 0.07);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+}
+
+.panel-setup-ask-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-blue);
+  font-weight: 700;
+}
+
+.panel-setup-ask-text {
+  font-size: 0.83rem;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.panel-setup-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.panel-setup-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--color-border);
+}
+
+.panel-setup-step-num {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-blue);
+  color: white;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.panel-setup-step-text {
+  font-size: 0.84rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.panel-setup-spacer {
+  flex: 1;
+}
+
+.panel-setup-next {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 15px 22px;
+  margin-top: 20px;
+  background: var(--color-blue);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 0.94rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+}
+
+.panel-setup-next:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.42);
 }
 
 /* ================================================
