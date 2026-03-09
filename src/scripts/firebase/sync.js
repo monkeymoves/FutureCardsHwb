@@ -2,29 +2,26 @@
  * Firebase sync for the Futures Card Game.
  *
  * Strategy: one Firestore document per room (`rooms/{roomCode}`).
- *   - Each write stamps `lastWriterUid` so listeners can skip their own echoes.
+ *   - Each write stamps `lastWriterSessionId` — a random ID generated fresh on
+ *     every page load — so listeners can skip their own echoes without treating
+ *     two tabs in the same browser as the same writer (which the Firebase UID
+ *     would do, since anonymous UIDs persist across tabs).
  *   - Writes are debounced (800 ms) so rapid card moves don't flood Firestore.
- *   - Participants are NOT synced via Firestore — each client manages its own
- *     local participant list. Only gameplay state (cards, phase, connections,
- *     phaseNotes) is shared.
+ *   - Participants are NOT synced — each client owns its own local list.
  *
- * Returns null if Firebase is not configured, so the game degrades gracefully
- * to localStorage-only mode.
+ * Returns null if Firebase is not configured (graceful local-only fallback).
  */
 
 import { doc, getDoc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db, firebaseEnabled } from './config.js';
 import { signInAnon } from './auth.js';
 
-// How long to wait after the last state change before writing to Firestore.
-// Prevents flooding on every pointer-move event during card drags.
 const WRITE_DEBOUNCE_MS = 800;
 
 /**
  * Initialise Firebase sync for a room.
- *
- * @param {string} roomCode - Firestore document ID (the room code from the URL).
- * @returns {Promise<SyncHandle|null>} Sync handle, or null if Firebase unavailable.
+ * @param {string} roomCode
+ * @returns {Promise<SyncHandle|null>}
  */
 export async function initSync(roomCode) {
   if (!firebaseEnabled || !db) {
@@ -32,8 +29,6 @@ export async function initSync(roomCode) {
     return null;
   }
 
-  // Anonymous auth — creates a persistent anonymous account per browser.
-  // Subsequent page loads reuse the same UID via the Firebase SDK's persistence.
   let user;
   try {
     user = await signInAnon();
@@ -43,10 +38,13 @@ export async function initSync(roomCode) {
     return null;
   }
 
-  const myUid = user.uid;
+  // A random ID unique to THIS page load (not the browser session).
+  // Using this instead of user.uid means two tabs in the same browser each get
+  // their own session ID, so they correctly receive each other's updates.
+  const mySessionId = crypto.randomUUID();
+
   const roomRef = doc(db, 'rooms', roomCode);
 
-  // Load the current room state (if it already exists).
   let initialState = null;
   try {
     const snap = await getDoc(roomRef);
@@ -54,45 +52,28 @@ export async function initSync(roomCode) {
       initialState = snap.data().state;
       console.info(`[sync] Loaded existing room state for ${roomCode}.`);
     } else {
-      console.info(`[sync] No existing state for ${roomCode} — this client will create it.`);
+      console.info(`[sync] New room ${roomCode} — this client will create it.`);
     }
   } catch (err) {
     console.warn('[sync] Could not load room from Firestore:', err.code);
-    // Non-fatal — start fresh and write on first state change.
   }
 
   let unsubscribe = null;
   let writeTimer = null;
 
-  /** @type {SyncHandle} */
-  const handle = {
-    /** The Firebase UID for the current anonymous session. */
-    uid: myUid,
-
-    /**
-     * The room's current state from Firestore, or null if the room is new.
-     * game.astro uses this as `initialState` for the engine.
-     */
+  return {
+    uid: user.uid,
     initialState,
 
-    /**
-     * Write the full game snapshot to Firestore (debounced).
-     * Called from the engine's `onStateChange` callback.
-     * Participants are stripped before writing — they're local-only.
-     *
-     * @param {object} snapshot - Full game state snapshot from snapshotState().
-     */
     writeState(snapshot) {
       clearTimeout(writeTimer);
       writeTimer = setTimeout(() => {
-        // Strip client-local fields before writing to shared store.
         const { participants, activeParticipantId, lastPanelType, ...sharedState } = snapshot;
-
         setDoc(
           roomRef,
           {
             roomId: roomCode,
-            lastWriterUid: myUid,
+            lastWriterSessionId: mySessionId,
             lastWrittenAt: serverTimestamp(),
             state: sharedState,
           },
@@ -101,42 +82,27 @@ export async function initSync(roomCode) {
       }, WRITE_DEBOUNCE_MS);
     },
 
-    /**
-     * Subscribe to state changes pushed by other clients.
-     * Only fires when `lastWriterUid !== myUid` (echo prevention).
-     *
-     * @param {function(object): void} onRemoteChange - Called with the remote state snapshot.
-     * @returns {function} Unsubscribe function.
-     */
     subscribe(onRemoteChange) {
       unsubscribe = onSnapshot(
         roomRef,
         (docSnap) => {
           if (!docSnap.exists()) return;
           const data = docSnap.data();
-
-          // Skip echoes of our own writes.
-          if (data.lastWriterUid === myUid) return;
-
+          // Skip echoes from this exact page-load session only.
+          if (data.lastWriterSessionId === mySessionId) return;
           if (data.state) {
             console.info('[sync] Remote state received — applying to board.');
             onRemoteChange(data.state);
           }
         },
-        (err) => {
-          // Snapshot errors are non-fatal (e.g. offline, permission denied).
-          console.warn('[sync] Snapshot listener error:', err.code);
-        }
+        (err) => console.warn('[sync] Snapshot error:', err.code)
       );
       return unsubscribe;
     },
 
-    /** Flush pending write and tear down the Firestore listener. */
     dispose() {
       clearTimeout(writeTimer);
       unsubscribe?.();
     },
   };
-
-  return handle;
 }

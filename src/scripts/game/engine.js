@@ -1415,7 +1415,17 @@ export function initGame(roomCode, options = {}) {
       }
 
       if (!placedId) {
-        const nextPos = timeline.getNextFreePosition(timelineCards);
+        // Exclude the END card so new action cards insert BEFORE it, not after.
+        const timelineWithoutEnd = timelineCards.filter((c) => c.type !== 'end');
+        const nextPos = timeline.getNextFreePosition(timelineWithoutEnd);
+
+        // If the computed position would land on or past the END card, push END right.
+        const endCard = findScenarioCard('end');
+        if (endCard && nextPos.x >= endCard.position.x - timeline.CARD_GAP) {
+          endCard.position.x = nextPos.x + timeline.CARD_WIDTH + timeline.CARD_GAP;
+          renderCard(endCard);
+        }
+
         placedId = placeCard({ ...cardData, lane: 'timeline' }, nextPos.x, nextPos.y);
       }
     } else {
