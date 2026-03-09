@@ -2074,6 +2074,59 @@ export function initGame(roomCode, options = {}) {
   }
 
   // ================================================
+  // Remote Sync — apply state pushed from another client
+  // ================================================
+
+  /**
+   * Apply a state snapshot received from Firestore (another client's write).
+   * Updates gameState in-place and re-renders the board WITHOUT resetting zoom
+   * or pan position — preserving each observer's current view.
+   *
+   * Participants are NOT synced — each client owns its own local participant
+   * list. Only shared gameplay data (cards, phase, connections, phaseNotes) is
+   * applied here.
+   *
+   * @param {object} snapshot - Partial game snapshot from sync.js (no participants).
+   */
+  function syncRemoteState(snapshot) {
+    if (!snapshot) return;
+
+    const phaseChanged = snapshot.phase && snapshot.phase !== gameState.phase;
+
+    // Apply shared state into the live gameState object.
+    if (snapshot.cards) gameState.cards = cloneCards(snapshot.cards);
+    if (snapshot.connections) gameState.connections = [...snapshot.connections];
+    if (snapshot.manualConnections) gameState.manualConnections = [...snapshot.manualConnections];
+    if (snapshot.phaseNotes) gameState.phaseNotes = { ...snapshot.phaseNotes };
+
+    // Phase transitions go through the phase manager so all phase UI updates
+    // (topbar label, progress pips, tab availability) fire correctly.
+    // We suppress the phase announcement overlay — it would be jarring for
+    // observers to see a full-screen overlay for another player's action.
+    if (phaseChanged) {
+      isInitializing = true; // temporarily suppress the overlay
+      phases.setPhase(snapshot.phase);
+      isInitializing = false;
+    }
+
+    // Clear all existing board card DOM elements and re-render from scratch.
+    // This is simpler and more reliable than diffing the DOM.
+    document.querySelectorAll('.board-card').forEach((el) => el.remove());
+    hydrateRelationships();
+    renderExistingCards();
+    relayoutBoard(true);          // skipTimelineLayout=true: keep free card positions
+    updateConnections();
+    updateEmptyPrompt();
+
+    // Refresh panel and header without triggering another state emit.
+    if (!phaseChanged) {
+      syncPanelMode();
+      renderPanelHeader();
+    }
+    renderParticipants();
+  }
+
+  // ================================================
   // Connect Mode — draw arbitrary card-to-card links
   // ================================================
 
@@ -2250,5 +2303,7 @@ export function initGame(roomCode, options = {}) {
     quickPlaceCard,
     removeCard,
     getState: () => gameState,
+    /** Apply a state snapshot from another client without resetting zoom. */
+    syncRemoteState,
   };
 }

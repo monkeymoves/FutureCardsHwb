@@ -124,137 +124,117 @@ import GameLayout from '../layouts/GameLayout.astro';
 
 <script>
   import { initGame } from '../scripts/game/engine.js';
+  import { initSync } from '../scripts/firebase/sync.js';
+
+  // ── Storage helpers ──────────────────────────────────────────────────────────
 
   function safeStorageGet(key) {
-    try {
-      return window.localStorage.getItem(key);
-    } catch {
-      return null;
-    }
+    try { return window.localStorage.getItem(key); } catch { return null; }
   }
 
   function safeStorageSet(key, value) {
-    try {
-      window.localStorage.setItem(key, value);
-    } catch {
-      // The board still works without persistence, so ignore storage failures.
-    }
+    try { window.localStorage.setItem(key, value); } catch { /* no-op */ }
   }
 
-  function bootGame() {
-    const ROOM_PARAM = 'room';
-    const NAME_PARAM = 'name';
-    const LAST_NAME_KEY = 'futures:last-player-name';
+  // ── Demo state (FTR-DEMO room only) ─────────────────────────────────────────
 
-    const params = new URLSearchParams(window.location.search);
-    const requestedRoomCode = params.get(ROOM_PARAM);
-    const roomCode = (requestedRoomCode || 'FTR-DEMO').trim().toUpperCase();
-    const playerName = (params.get(NAME_PARAM) || safeStorageGet(LAST_NAME_KEY) || 'Planner').trim();
-    const storageKey = `futures:room:${roomCode}`;
+  function buildDemoState(code) {
+    const startX = 400, step = 260, top = 1070;
+    return {
+      roomCode: code,
+      phase: 'planning',
+      cards: {
+        'demo-begin':  { cardId: 'demo-begin',  type: 'beginning', title: 'Rising Climate Pressure',      description: 'A public board needs a resilient, cross-agency response plan.',          position: { x: startX,           y: top } },
+        'demo-act-1':  { cardId: 'demo-act-1',  type: 'action',    title: 'Commission Evidence Review',   description: 'Gather current climate risk data and lessons from other regions.',     position: { x: startX + step,     y: top } },
+        'demo-act-2':  { cardId: 'demo-act-2',  type: 'action',    title: 'Hold Stakeholder Workshop',    description: 'Align local services, planners, and community groups on priorities.',   position: { x: startX + step * 2, y: top } },
+        'demo-act-3':  { cardId: 'demo-act-3',  type: 'action',    title: 'Draft Policy Brief',           description: 'Turn the workshop outputs into a concrete implementation proposal.',   position: { x: startX + step * 3, y: top } },
+        'demo-end':    { cardId: 'demo-end',     type: 'end',       title: 'Adopted Adaptation Plan',      description: 'A shared strategy is agreed and ready for delivery.',                  position: { x: startX + step * 4, y: top } },
+        'demo-ripple': { cardId: 'demo-ripple',  type: 'ripple',    title: 'Cross-departmental Collaboration', description: 'The process breaks silos and creates a stronger delivery network.', position: { x: startX + step * 2, y: top - 260 } },
+      },
+      connections: [],
+    };
+  }
+
+  // ── Boot ─────────────────────────────────────────────────────────────────────
+
+  async function bootGame() {
+    const params          = new URLSearchParams(window.location.search);
+    const requestedRoom   = params.get('room');
+    const roomCode        = (requestedRoom || 'FTR-DEMO').trim().toUpperCase();
+    const playerName      = (params.get('name') || safeStorageGet('futures:last-player-name') || 'Planner').trim();
+    const storageKey      = `futures:room:${roomCode}`;
+    const isDemoRoom      = roomCode === 'FTR-DEMO';
+
+    // Update topbar room code and avatar immediately (before async work).
     const roomCodeButton = document.getElementById('room-code-button');
-    const playerAvatar = document.getElementById('player-avatar');
+    const playerAvatar   = document.getElementById('player-avatar');
+    if (!roomCodeButton || !playerAvatar) return;
 
-    if (!roomCodeButton || !playerAvatar) {
-      return;
-    }
-
-    safeStorageSet(LAST_NAME_KEY, playerName);
-
+    safeStorageSet('futures:last-player-name', playerName);
     roomCodeButton.textContent = roomCode;
-    playerAvatar.textContent = playerName.slice(0, 2).toUpperCase();
+    playerAvatar.textContent   = playerName.slice(0, 2).toUpperCase();
     playerAvatar.setAttribute('aria-label', playerName);
+
+    // Copy room code to clipboard on click.
     roomCodeButton.addEventListener('click', async () => {
-      const label = `${roomCode} copied`;
-
-      try {
-        await navigator.clipboard.writeText(roomCode);
-        roomCodeButton.textContent = label;
-      } catch {
-        roomCodeButton.textContent = roomCode;
-      }
-
-      window.setTimeout(() => {
-        roomCodeButton.textContent = roomCode;
-      }, 1200);
+      try { await navigator.clipboard.writeText(roomCode); } catch { /* no-op */ }
+      roomCodeButton.textContent = `${roomCode} copied`;
+      window.setTimeout(() => { roomCodeButton.textContent = roomCode; }, 1200);
     });
 
-    function loadInitialState() {
+    // ── 1. Firebase sync (optional) ───────────────────────────────────────────
+    // For the demo room we skip Firebase so it always starts fresh locally.
+    let syncHandle = null;
+    if (!isDemoRoom) {
+      try {
+        syncHandle = await initSync(roomCode, playerName);
+      } catch (err) {
+        console.warn('[boot] Firebase unavailable, falling back to localStorage:', err);
+      }
+    }
+
+    // ── 2. Resolve initial state (Firebase → localStorage → blank) ───────────
+    let initialState = syncHandle?.initialState ?? null;
+
+    if (!initialState && !isDemoRoom) {
+      // Room exists locally (e.g. offline reload) — use localStorage backup.
       try {
         const raw = safeStorageGet(storageKey);
-        return raw ? JSON.parse(raw) : null;
-      } catch {
-        return null;
-      }
+        if (raw) initialState = JSON.parse(raw);
+      } catch { /* ignore corrupt storage */ }
     }
 
-    function buildDemoState(code) {
-      const startX = 400;
-      const step = 260;
-      const top = 1070;
-
-      return {
-        roomCode: code,
-        phase: 'planning',
-        cards: {
-          'demo-begin': {
-            cardId: 'demo-begin',
-            type: 'beginning',
-            title: 'Rising Climate Pressure',
-            description: 'A public board needs a resilient, cross-agency response plan.',
-            position: { x: startX, y: top },
-          },
-          'demo-act-1': {
-            cardId: 'demo-act-1',
-            type: 'action',
-            title: 'Commission Evidence Review',
-            description: 'Gather current climate risk data and lessons from other regions.',
-            position: { x: startX + step, y: top },
-          },
-          'demo-act-2': {
-            cardId: 'demo-act-2',
-            type: 'action',
-            title: 'Hold Stakeholder Workshop',
-            description: 'Align local services, planners, and community groups on priorities.',
-            position: { x: startX + step * 2, y: top },
-          },
-          'demo-act-3': {
-            cardId: 'demo-act-3',
-            type: 'action',
-            title: 'Draft Policy Brief',
-            description: 'Turn the workshop outputs into a concrete implementation proposal.',
-            position: { x: startX + step * 3, y: top },
-          },
-          'demo-end': {
-            cardId: 'demo-end',
-            type: 'end',
-            title: 'Adopted Adaptation Plan',
-            description: 'A shared strategy is agreed and ready for delivery.',
-            position: { x: startX + step * 4, y: top },
-          },
-          'demo-ripple': {
-            cardId: 'demo-ripple',
-            type: 'ripple',
-            title: 'Cross-departmental Collaboration',
-            description: 'The process breaks silos and creates a stronger delivery network.',
-            position: { x: startX + step * 2, y: top - 260 },
-          },
-        },
-        connections: [],
-      };
+    if (!initialState && isDemoRoom) {
+      initialState = buildDemoState(roomCode);
     }
 
-    const persistedState = loadInitialState();
+    // ── 3. Boot the game engine ───────────────────────────────────────────────
+    // applyingRemote suppresses Firestore writes that would otherwise echo
+    // when syncRemoteState() triggers internal emitStateChange() calls.
+    let applyingRemote = false;
 
-    initGame(roomCode, {
+    const engine = initGame(roomCode, {
       playerName,
-      initialState:
-        roomCode === 'FTR-DEMO' && !requestedRoomCode
-          ? buildDemoState(roomCode)
-          : (persistedState || (roomCode === 'FTR-DEMO' ? buildDemoState(roomCode) : null)),
+      initialState,
       onStateChange(nextState) {
+        // Always keep localStorage as an offline backup.
         safeStorageSet(storageKey, JSON.stringify(nextState));
+
+        // Write to Firestore only when we're the origin of the change.
+        if (!applyingRemote) {
+          syncHandle?.writeState(nextState);
+        }
       },
     });
+
+    // ── 4. Subscribe to remote changes from other clients ────────────────────
+    if (syncHandle) {
+      syncHandle.subscribe((remoteState) => {
+        applyingRemote = true;
+        engine.syncRemoteState(remoteState);
+        applyingRemote = false;
+      });
+    }
   }
 
   if (document.readyState === 'loading') {
