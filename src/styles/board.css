@@ -217,38 +217,70 @@
 .participant-rail {
   display: flex;
   align-items: center;
-  gap: 4px;
-  max-width: 200px;
-  overflow-x: auto;
-  flex-shrink: 1;
+  /* Stacked avatars overlap by 6px each */
+  gap: -6px;
+  flex-shrink: 0;
 }
 
-.participant-rail::-webkit-scrollbar {
-  height: 3px;
+/* Each avatar overlaps the previous by pulling left */
+.participant-avatar + .participant-avatar {
+  margin-left: -6px;
 }
 
-.participant-chip {
+.participant-avatar {
   flex: 0 0 auto;
-  border-radius: 999px;
-  padding: 5px 10px;
-  border: 1px solid rgba(214, 211, 209, 0.85);
-  background: rgba(255,255,255,0.74);
-  color: var(--color-text-secondary);
-  font-size: 0.68rem;
-  font-weight: 600;
-  white-space: nowrap;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid white;
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font-size: 0.6rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s;
+  position: relative;
+  white-space: nowrap;
 }
 
-.participant-chip:hover {
-  background: white;
+.participant-avatar:hover {
+  transform: translateY(-2px);
+  z-index: 2;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
 }
 
-.participant-chip.is-active {
-  border-color: rgba(59, 130, 246, 0.32);
-  background: rgba(59, 130, 246, 0.1);
+.participant-avatar.is-active {
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+  z-index: 1;
+}
+
+.participant-avatar[data-role="host"] {
+  background: rgba(59, 130, 246, 0.12);
   color: var(--color-blue-dark);
+}
+
+/* Overflow count badge "+N" */
+.participant-overflow {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid white;
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  font-size: 0.58rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: -6px;
+  cursor: default;
 }
 
 /* ---- Board Viewport (the clipping window) ---- */

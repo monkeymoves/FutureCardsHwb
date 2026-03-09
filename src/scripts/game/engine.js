@@ -290,20 +290,40 @@ export function initGame(roomCode, options = {}) {
       participantRail.removeChild(participantRail.firstChild);
     }
 
-    gameState.participants.forEach((participant) => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'participant-chip';
-      chip.textContent = participant.role === 'host'
-        ? `${participant.name} · Host`
-        : participant.name;
-      chip.classList.toggle('is-active', participant.id === gameState.activeParticipantId);
-      chip.addEventListener('click', () => {
+    const MAX_VISIBLE = 7;
+    const visible = gameState.participants.slice(0, MAX_VISIBLE);
+    const overflow = gameState.participants.length - MAX_VISIBLE;
+
+    visible.forEach((participant) => {
+      const initials = participant.name
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((p) => p[0])
+        .join('')
+        .toUpperCase() || 'P';
+
+      const avatar = document.createElement('button');
+      avatar.type = 'button';
+      avatar.className = 'participant-avatar';
+      avatar.textContent = initials;
+      avatar.title = participant.role === 'host' ? `${participant.name} (Host)` : participant.name;
+      avatar.dataset.role = participant.role;
+      avatar.classList.toggle('is-active', participant.id === gameState.activeParticipantId);
+      avatar.addEventListener('click', () => {
         setActiveParticipant(participant.id);
         emitStateChange();
       });
-      participantRail.appendChild(chip);
+      participantRail.appendChild(avatar);
     });
+
+    if (overflow > 0) {
+      const badge = document.createElement('span');
+      badge.className = 'participant-overflow';
+      badge.textContent = `+${overflow}`;
+      badge.title = `${overflow} more participant${overflow > 1 ? 's' : ''}`;
+      participantRail.appendChild(badge);
+    }
   }
 
   function getPhasePanelText(phaseId) {

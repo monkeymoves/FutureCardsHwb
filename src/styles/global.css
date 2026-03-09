@@ -169,6 +169,18 @@ h4 { font-size: 1rem; }
   text-decoration: none;
 }
 
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+}
+
+.btn-ghost:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
 .btn-large {
   padding: var(--space-md) var(--space-xl);
   font-size: 1.05rem;
