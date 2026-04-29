@@ -1530,6 +1530,30 @@
   #card-panel.panel--story {
     --panel-width: 100vw;
   }
+
+  /* Mobile fix for the toggle button.
+     On desktop the toggle juts out the panel's LEFT side (`left: -36px`)
+     where there's plenty of canvas. On mobile the panel can hit 100vw, so
+     `left: -36px` puts the toggle off-screen at x = -36 — there's no way
+     to ever close the panel. We solve this with two changes:
+
+     1. Move the toggle INSIDE the panel (`left: 4px`) so it stays on-screen
+        regardless of viewport width.
+     2. When collapsed, slide the panel right by `width - 44px` (instead of
+        the full width). This leaves a 44px-wide tab on the right edge of the
+        screen with the toggle in it — the user's "reopen" handle.
+
+     Net behaviour: on a phone, you can hide the panel to expose the canvas
+     and then tap the small chevron tab to bring it back. */
+  .panel-toggle {
+    left: 4px;
+    border: 1px solid rgba(214, 211, 209, 0.9);
+    background: rgba(255, 255, 255, 0.98);
+  }
+
+  #card-panel.collapsed {
+    transform: translateX(calc(var(--panel-width) - 44px));
+  }
 }
 
 /* ================================================
