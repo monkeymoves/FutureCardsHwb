@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 import { getDatabase } from 'firebase/database';
 
 const firebaseConfig = {
@@ -29,6 +29,13 @@ export const firebaseEnabled = REQUIRED_ENV_KEYS.every((key) => Boolean(import.m
 const app = firebaseEnabled ? initializeApp(firebaseConfig) : null;
 
 export const auth = app ? getAuth(app) : null;
-export const db = app ? getFirestore(app) : null;
+// `ignoreUndefinedProperties: true` is a defensive belt-and-braces — Firestore
+// rejects writes that contain `undefined` field values with an opaque error
+// from inside its serialiser ("Cannot read properties of undefined / payload").
+// We try not to ever pass undefined, but if a future code path does, the SDK
+// silently strips it instead of crashing the client.
+export const db = app
+  ? initializeFirestore(app, { ignoreUndefinedProperties: true })
+  : null;
 export const rtdb = app ? getDatabase(app) : null;
 export default app;

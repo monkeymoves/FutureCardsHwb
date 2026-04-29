@@ -27,8 +27,12 @@
 
 #card-panel {
   --panel-width: 560px;
+  /* Lives inside #board-viewport now (not the game-container) so it sits
+     naturally below the topbar AND the framing strip. Previously this was
+     `top: 64px` anchored to the container, which overlapped the strip
+     whenever framing was set. */
   position: absolute;
-  top: 64px;     /* below topbar */
+  top: 0;
   right: 0;
   bottom: 0;
   width: var(--panel-width);

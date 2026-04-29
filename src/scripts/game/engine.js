@@ -1835,9 +1835,11 @@ export function initGame(roomCode, options = {}) {
       updatedBy: cardData.updatedBy || activeParticipant?.id || null,
       // Default lanes:
       //   - actions:    'timeline' (always; we no longer auto-spawn responses)
-      //   - curveballs: undefined  (only inline when quickPlaceCard sets lane='timeline')
-      //   - ripples:    undefined  (always floating side-branches)
-      lane: cardData.lane || (type === 'action' ? 'timeline' : undefined),
+      //   - curveballs: null      (floating attachment unless quickPlaceCard sets 'timeline')
+      //   - ripples:    null      (always floating side-branches)
+      // NOTE: must be null, not undefined — Firestore rejects undefined values
+      // with an opaque "Cannot read 'payload'" error from inside its serialiser.
+      lane: cardData.lane || (type === 'action' ? 'timeline' : null),
       position: { x, y },
     };
 
