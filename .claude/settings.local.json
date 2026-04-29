@@ -10,7 +10,22 @@
       "Bash(lsof -ti:4321)",
       "Bash(xargs kill -9)",
       "Bash(open http://localhost:4321/)",
-      "Bash(open http://localhost:4324)"
+      "Bash(open http://localhost:4324)",
+      "Bash(git add src/pages/game.astro src/styles/board.css src/styles/panel.css src/scripts/game/timeline.js src/scripts/game/engine.js)",
+      "Bash(git commit:*)",
+      "Bash(git add src/pages/game.astro src/scripts/game/engine.js src/styles/board.css src/styles/panel.css)",
+      "Bash(git add src/scripts/game/engine.js src/styles/board.css src/styles/panel.css)",
+      "Bash(git add src/scripts/game/card.js src/scripts/game/engine.js src/scripts/game/timeline.js src/styles/board.css src/styles/cards.css src/styles/panel.css)",
+      "Bash(git add src/pages/game.astro src/scripts/game/board.js src/scripts/game/engine.js src/styles/board.css src/styles/cards.css src/styles/panel.css)",
+      "Bash(git add src/scripts/firebase/sync.js src/scripts/game/engine.js src/pages/game.astro)",
+      "Bash(firebase projects:list)",
+      "Bash(firebase deploy --only hosting)",
+      "Bash(git add src/scripts/firebase/sync.js src/scripts/game/engine.js .gitignore .firebaserc firebase.json)",
+      "Bash(git add src/pages/index.astro src/pages/lobby.astro src/styles/global.css src/styles/board.css src/scripts/game/engine.js)",
+      "Bash(git add src/pages/index.astro)",
+      "Bash(git add src/pages/lobby.astro)",
+      "Bash(awk 'NR>=1280 && NR<=1370' /Users/lukemaggs/Desktop/FutureCardsClaude/src/scripts/game/engine.js)",
+      "Bash(curl -sI http://localhost:4321/)"
     ]
   }
 }

@@ -582,7 +582,9 @@ import Footer from '../components/Footer.astro';
     }
 
     function goToRoom(roomCode, name) {
-      const url = new URL('/game', window.location.origin);
+      // /framing handles the pre-game question + goal step, then redirects to /game.
+      // Demo room (FTR-DEMO) bypasses framing inside framing.astro itself.
+      const url = new URL('/framing', window.location.origin);
       url.searchParams.set('room', roomCode);
       url.searchParams.set('name', name);
       window.location.assign(url.toString());

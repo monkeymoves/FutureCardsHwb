@@ -40,6 +40,101 @@
 #game-container[data-phase="ripple"] #game-topbar { border-bottom-color: rgba(5, 150, 105, 0.25); }
 #game-container[data-phase="reflection"] #game-topbar { border-bottom-color: rgba(30, 64, 175, 0.25); }
 
+/* ---- Framing context strip (under the topbar) ---- */
+.framing-strip {
+  flex-shrink: 0;
+  background: rgba(59, 130, 246, 0.06);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.18);
+  padding: 6px 18px;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  z-index: 40;
+}
+
+.framing-strip[hidden] { display: none; }
+
+.framing-strip-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.framing-strip-summary::-webkit-details-marker { display: none; }
+
+.framing-strip-summary::before {
+  content: '▸';
+  font-size: 0.7rem;
+  color: var(--color-blue);
+  transition: transform 0.18s ease;
+}
+
+.framing-strip[open] .framing-strip-summary::before {
+  transform: rotate(90deg);
+}
+
+.framing-strip-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-blue);
+  flex-shrink: 0;
+}
+
+.framing-strip-question {
+  flex: 1;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text);
+}
+
+.framing-strip-body {
+  margin-top: 6px;
+  padding-left: 16px;
+  display: grid;
+  gap: 4px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.framing-strip-row strong {
+  font-weight: 700;
+  color: var(--color-text);
+  margin-right: 6px;
+}
+
+.framing-strip-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.framing-strip-edit-btn {
+  appearance: none;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.framing-strip-edit-btn:hover {
+  background: var(--color-blue-light, rgba(59, 130, 246, 0.08));
+  color: var(--color-blue);
+  border-color: var(--color-blue);
+}
+
 .topbar-left {
   display: flex;
   align-items: center;
@@ -229,22 +324,28 @@
 
 .participant-avatar {
   flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   border-radius: 50%;
   border: 2px solid white;
   background: var(--color-surface-raised);
   color: var(--color-text);
-  font-size: 0.6rem;
+  font-size: 0.62rem;
   font-weight: 700;
   font-family: var(--font-display);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
   position: relative;
   white-space: nowrap;
+}
+
+.participant-avatar-initials {
+  display: block;
+  pointer-events: none;
 }
 
 .participant-avatar:hover {
@@ -262,6 +363,48 @@
 .participant-avatar[data-role="host"] {
   background: rgba(59, 130, 246, 0.12);
   color: var(--color-blue-dark);
+}
+
+/* "You" — a thin coloured ring so the current tab spots its own avatar instantly */
+.participant-avatar.is-me {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 1px;
+}
+
+/* Idle participants are softened so the rail communicates "who's actually here" */
+.participant-avatar.is-idle {
+  opacity: 0.55;
+  filter: saturate(0.7);
+}
+
+/* Online/idle dot — small circle bottom-right corner of the avatar */
+.participant-avatar-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  border: 1.5px solid white;
+  pointer-events: none;
+}
+
+.participant-avatar.is-online .participant-avatar-dot {
+  background: var(--color-green, #059669);
+}
+
+/* Host crown — small star above the avatar */
+.participant-avatar-crown {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  line-height: 1;
+  color: #d97706;
+  text-shadow: 0 1px 0 white;
+  pointer-events: none;
 }
 
 /* Overflow count badge "+N" */

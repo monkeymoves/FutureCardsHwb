@@ -4,6 +4,9 @@ output/
 # generated types
 .astro/
 
+# Firebase deploy/runtime cache (not source)
+.firebase/
+
 # dependencies
 node_modules/
 

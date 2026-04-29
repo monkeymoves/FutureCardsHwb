@@ -1,225 +1,196 @@
-# Futures Card Game — Handover
+# Futures Card Game — Engineering Handover
 
-## Summary
+This document is for the next engineer (or AI agent) picking up the codebase. It captures architecture, design decisions, and the non-obvious gotchas that aren't apparent from the code alone.
 
-This repo is a futures workshop card-game prototype inspired by the physical brief in `LO4 Instructions - Card Game.docx`.
+For product overview and getting-started, see [README.md](README.md).
 
-The current direction is:
+---
 
-- one host
-- multiple players
-- a shared board
-- a guided phase flow
-- a useful session takeaway at the end
+## Status as of this handover
 
-It should be thought of as a local v1 prototype, not a completed multiplayer product.
+The app is **deployed and functional** at [hwbcards.web.app](https://hwbcards.web.app), running real workshops. It's no longer a "local prototype" — Firebase realtime sync is live, multiple users in different browsers can collaborate on the same board, and exports are PDF rather than TXT.
 
-## Current UX / Product Position
+The product loop is end-to-end:
 
-The board is no longer trying to be a generic canvas with lots of helper chrome. The current UX is intentionally simpler:
+```
+landing (/) → lobby → framing → game (synced) → reflection → PDF export
+```
 
-- the board surface is mostly open
-- the right tray is the main control surface
-- any board-card click opens the modal editor
-- dragging only starts after real movement
-- notes live in the `Notebook` view, not as duplicate canvas widgets
-- `Notebook` mode expands wider and hides the card tray content so the output workspace gets the room instead
+Recent significant changes (most recent first):
 
-That was a deliberate product correction. Earlier versions had too many on-canvas explanations and too much tiny-control interaction.
+- **CSV-driven card library** — content lives in `content/cards.csv`, generated to JS at build time
+- **PDF export via `window.print()`** — replaces the old TXT download; includes framing, participants, card notes, manual connections, and reflection
+- **In-game framing edit** — refine question/goal mid-session without leaving the board
+- **Inline curveballs** — curveballs are now timeline citizens (after their target action) rather than floating side-branches
+- **Custom-card creation modal** — replaces native `prompt()` with a phase-coloured in-app dialog
+- **Heartbeat made local-only** — fixed a phase-revert race where Tab B's 20s heartbeat would clobber Tab A's just-advanced phase
+- **`+Player` button removed** — redundant since real participants arrive via the join-by-link URL flow
+- **Sticky-by-name participant reclaim** — Alice closing and reopening her tab no longer creates a duplicate "Alice" entry; her old slot is reclaimed if it's idle (>45s stale)
 
-## What Is Live Right Now
+---
 
-### Routes
+## Architecture
 
-- `/` landing page
-- `/about` rules / framing page
-- `/lobby` local room create/join flow
-- `/game` seeded demo board
-- `/game?room=FTR-ABCD` named local room
+### Data flow
 
-### Playable Flow
+```
+User input → engine.js mutates gameState
+  → emitStateChange() → onStateChange callback (game.astro)
+    → localStorage backup (always)
+    → if !applyingRemote: syncHandle.writeState() → debounced Firestore write
 
-1. `Setup`
-   Click the blue start/end cards and define the scenario.
-2. `Planning`
-   Build the core pathway with action cards.
-3. `Curveball`
-   Add disruptions and, if needed, new response actions.
-4. `Ripple`
-   Add wider effects that emerge from choices, disruptions, or responses.
-5. `Reflection`
-   Review the board and capture the session takeaway in the notebook/export view.
+Firestore snapshot → onSnapshot listener (game.astro)
+  → applyingRemote = true
+  → engine.syncRemoteState(snapshot)
+    → diff which fields actually changed
+    → apply state, re-render only what changed
+  → applyingRemote = false
+```
 
-### Current Prototype Features
+The `applyingRemote` flag is the echo prevention — when we apply a remote change, the resulting `emitStateChange()` calls don't write back to Firestore.
 
-- zoom and pan on a large board surface
-- tray-to-board placement via click or drag
-- board-card repositioning
-- host/player switching with per-card ownership
-- stable core-path reflow for `beginning -> actions -> end goal`
-- branch response actions during later phases
-- automatic curveball / ripple linking with visible relationship lines
-- whole-card modal editing for all cards
-- notebook view with copy/download text export plus more structured workshop-summary sections
-- phase-aware deck guidance so players can tell whether they are building the main path, pressuring it, tracing effects, or adding a response
-- local room persistence in `localStorage`
+### Sync model
 
-## Architecture Snapshot
+**One Firestore document per room** at `rooms/{roomCode}`. The whole state is stored in a single `state` field (cards, phase, framing, participants, etc.). Writes are debounced 800ms. Echoes are filtered by `lastWriterSessionId`, which is a **fresh `crypto.randomUUID()` per page load** — NOT the Firebase anonymous UID, because UIDs persist across tabs in the same browser, which would make tabs treat each other as themselves.
 
-### Frontend
+Only `lastPanelType` is local-per-tab and stripped before writing. Everything else is shared (including participants).
 
-- Astro for routes and layout
-- vanilla JS for game state and interaction systems
-- plain CSS for cards, board, and tray visuals
+### Phase-aware UI via CSS custom properties
 
-### Important Files
+`#game-container[data-phase="planning"]` (etc.) sets `--panel-phase-color`, `--panel-phase-glow`, `--panel-phase-light`. The phase manager updates the data-attribute, and CSS does the rest. New phase-coloured chrome can be added without JS changes — just write `var(--panel-phase-color)` in CSS.
 
-- `src/pages/game.astro`
-  Main game shell: top bar, board viewport, tray, and modal mount points.
-- `src/scripts/game/engine.js`
-  Main orchestration layer. This is the file to read first for game logic.
-  Responsibilities:
-  - phases
-  - tray population
-  - modal editing
-  - participant switching
-  - card placement / movement / removal
-  - notebook/export rendering
-  - persistence snapshots
-- `src/scripts/game/drag.js`
-  Pointer drag system. Important recent change: board-card drag now waits for movement threshold so click-to-edit works properly.
-- `src/scripts/game/timeline.js`
-  Draws the core pathway plus relationship lines for curveballs, ripples, and response actions.
-- `src/scripts/game/board.js`
-  Zoom/pan controller and board coordinate conversion.
-- `src/scripts/game/card.js`
-  Board/tray card DOM creation.
-- `src/scripts/game/phases.js`
-  Phase metadata and per-phase placement rules.
+### The five phases
 
-### Data
+`setup → planning → curveball → ripple → reflection`. Each phase declares `allowedCardTypes` in [phases.js](src/scripts/game/phases.js). Phase advances go through `phases.setPhase()` which fires `onPhaseChange` (in engine.js), which updates the panel, topbar, and pips and calls `emitStateChange()`.
 
-- `src/scripts/data/card-library.js`
-  Built-in action, curveball, and ripple decks.
+---
 
-### Firebase
+## Important files
 
-These helpers exist but are not wired into the current board flow yet:
+### Read-first
 
-- `src/scripts/firebase/config.js`
-- `src/scripts/firebase/auth.js`
-- `src/scripts/firebase/firestore.js`
+- **[src/scripts/game/engine.js](src/scripts/game/engine.js)** — the orchestrator. Most game logic lives here: phase callbacks, card placement (`quickPlaceCard`, `placeCard`, `moveCard`, `removeCard`), panel rendering, story summary, PDF export, sync handling. ~2700 lines but well-sectioned with comment banners.
+- **[src/pages/game.astro](src/pages/game.astro)** — game shell. Boot logic, sync subscribe, modal HTML for custom-card and framing-edit, the print-view section that gets populated for PDF export.
+- **[src/scripts/firebase/sync.js](src/scripts/firebase/sync.js)** — sync handle factory. Returns `{ initialState, writeState, subscribe, dispose }`. Tiny — readable in one sitting.
 
-## Important Product / UX Decisions
+### Layout & rendering
 
-### 1. Host + Players
+- **[src/scripts/game/timeline.js](src/scripts/game/timeline.js)** — `calculateLayout()` for left-to-right pathway positioning, `drawConnections()` for the SVG arrow chain. Honours caller order so `getTimelineCards()` controls the sequence.
+- **[src/scripts/game/board.js](src/scripts/game/board.js)** — viewport zoom/pan, screen↔board coordinate transforms, `fitToContent()` and `panTo()`.
+- **[src/scripts/game/card.js](src/scripts/game/card.js)** — DOM creation for board and panel cards.
+- **[src/scripts/game/drag.js](src/scripts/game/drag.js)** — Pointer Events drag system. Handles tap-to-place (pointerdown+up at same position → `quickPlaceCard`) and full drag (pointermove past threshold → drag mode).
 
-The app no longer tries to model a lot of different roles. The useful distinction is:
+### Data & content
 
-- host
-- players
+- **[content/cards.csv](content/cards.csv)** — source of truth for the deck (44 cards as of writing).
+- **[scripts/build-card-library.mjs](scripts/build-card-library.mjs)** — CSV parser, validator, JS module emitter. Run by `predev` and `prebuild` hooks.
+- **[src/scripts/data/card-library.js](src/scripts/data/card-library.js)** — auto-generated. Header warns against hand-editing. Tracked in git for clone-and-go.
+- **[src/scripts/framing/templates.js](src/scripts/framing/templates.js)** — question shape definitions (Shape a future / Explore consequences / Find pathways), slots, helper text.
 
-That is simpler for remote facilitation and simpler in the UI.
+---
 
-### 2. Modal Editing Is the Default
+## Design decisions worth knowing
 
-Tiny per-card edit/delete controls were removed from the board flow.
+### Curveballs are timeline citizens, ripples are not
 
-Current rule:
+A curveball is an *event in time* — "we did A, then COVID happened, so we did B differently". It belongs on the line. Curveballs have `lane: 'timeline'` and `linkedTo` (for the "presses X" badge). They insert *after* their target action, pushing later cards right.
 
-- click card -> open editor
-- drag card -> reposition card
+A ripple is a *consequence radiating outward* — "this action caused public-trust gain over here AND collaboration improvement over there". It belongs off the line, branching above/below. Ripples keep their floating position via `findNearestLinkTarget` re-anchor on drag.
 
-This is much easier to understand on laptop screens.
+This split teaches the foresight conceptual difference for free: things on the line happen *to me*, things off the line happen *because of me*. Don't merge the two.
 
-### 3. Notebook Is the Place for Takeaways
+### Heartbeat is local-only
 
-Phase notes are no longer duplicated on the canvas.
+Every 20s, `heartbeat()` updates `gameState.participants[me].lastSeenAt` locally and re-renders the participant rail. It does **not** call `emitStateChange()`.
 
-The `Notebook` view now:
+Why: the heartbeat used to write the full game state to Firestore. If Tab B's heartbeat fired during the brief window between Tab A advancing to curveball and Tab B receiving that snapshot, Tab B would write its stale `phase: 'planning'` and revert Tab A. Last-writer-wins on the wrong field.
 
-- captures the current phase takeaway
-- shows the evolving session story
-- supports copy/download export
+Trade-off: a purely-idle observer's online dot drifts stale on other tabs. Active players refresh each other through normal state writes (any card placement, edit, phase advance).
 
-### 4. Branching Matters More Than a Perfect Timeline
+If you want to fix the trade-off properly: write only `state.participants[i]` to Firestore using field-level merges, never the whole state. Requires careful work because Firestore merge replaces arrays wholesale; you'd need a map keyed by participant id, not an array.
 
-The core path is still ordered, but the product is no longer trying to force every idea into one rigid straight line.
+### Sticky-by-name participants
 
-Current structure:
+When a tab joins a room, it first checks if there's a same-name participant whose `lastSeenAt` is older than the online window (45s). If so, it **reclaims the slot** — replaces the sessionId, bumps lastSeenAt, keeps the original participant id. Only creates a new participant if no idle slot is available.
 
-- main pathway = core actions between start and end
-- curveballs = pressures on the path
-- ripples = wider effects
-- response actions = adaptations that branch from a source card
+This stops Alice piling up "Alice / Alice (idle) / Alice (idle)" rows in everyone's rail every reconnect. If two people are both genuinely named Alice and both online, the second Alice creates a new slot — we don't hijack an active session.
 
-### 5. The Tray Has Two Distinct Jobs
+### `getTimelineCards()` is the central truth
 
-`Cards` mode is for play.
+Read in 5+ places. Returns `[begin, ...middleCardsByX, end]` where `middle` is actions and inline curveballs. `relayoutTimelineCards`, `timeline.drawConnections`, the END-card-push logic in `quickPlaceCard` — all read from this. One filter change cascades through.
 
-- choose a deck
-- see what that deck does in the current phase
-- place cards quickly
+### `syncRemoteState` diffs before re-rendering
 
-`Notebook` mode is for facilitation output.
+The previous version always tore the board down and re-rendered on every remote snapshot. With heartbeats firing every 20s × N tabs, this caused a flash every ~20s on observers. The current version:
 
-- capture the strongest takeaway for the phase
-- review the session as a workshop brief
-- export summary text
+1. Computes `cardsChanged`, `connectionsChanged`, etc. by JSON-comparing snapshot vs current state.
+2. Only does the heavy `querySelectorAll('.board-card').forEach(remove) + renderExistingCards + relayoutBoard` if board content actually changed.
+3. Phase-only changes go through `phases.setPhase` which already updates the panel/topbar — no board re-render needed.
+4. Participant-only changes update only the rail.
 
-## Persistence / Routing
+### Framing question/goal can be edited mid-game
 
-The board currently supports two static-friendly entry points:
+The framing strip's expanded view has an "✎ Edit framing" button that opens a modal. The save handler updates `gameState.framing.composedQuestion` and `gameState.framing.goal`, AND mirrors to the begin card description and end card title+description (since those are derivative of framing). Fires `emitStateChange()` so other tabs sync.
 
-- `/game`
-- `/game?room=FTR-ABCD`
+---
 
-Room state is saved in `localStorage` under the room code.
+## Gotchas
 
-This was chosen because the project is still static Astro output. Query-param rooms work without moving to SSR.
+### Closures over mutable state in event handlers
 
-## What Is Not Done Yet
+The story panel render captured `summary` in a closure for the Export button. The notebook textarea handler intentionally writes to `gameState.phaseNotes` *without* re-rendering the panel (to preserve textarea focus on every keystroke). So by the time the user clicks Export, the captured `summary` is missing whatever they just typed.
 
-- realtime room sync across devices
-- Firestore-backed lobby / room state
-- host-only permissions enforced across real clients
-- presence / cursors
-- polished export artifact beyond text summary
-- drag-to-link relationship authoring
-- player proposal / host approval flow for custom cards
+**Rule**: for handlers reading "current" state, compute on click, not on render. The cost of an extra `buildStorySummary()` per click is microscopic; the bug it prevents is invisible until someone tries to use the feature.
 
-## Current Risks
+### Pointer Events vs HTML Drag API
 
-1. Same room code on different devices does not sync.
-2. The relationship model is usable but still heuristic: nearest/select-based rather than explicit authored links.
-3. The export is directionally useful but still not presentation-quality.
-4. First-run onboarding is still light. A real facilitator probably needs a clearer guided intro.
+The board uses CSS transforms for the zoom/pan layer. The HTML Drag API doesn't compose with CSS transforms (the drag image is wrong, drop targets misalign). Pointer Events is the only sound choice. If you ever need to add a new drag interaction, follow the existing `startPanelDrag` / `startBoardDrag` pattern in `drag.js`.
 
-## Recommended Next Slice
+### Action card placement isn't a `click` event
 
-If continuing toward a real v1, the highest-value next steps are:
+Tapping a panel card to place it goes through `pointerdown` + `pointerup`. The drag system distinguishes a tap (no movement) from a drag (movement past threshold). Synthetic `click()` does nothing — to test programmatically, dispatch real `PointerEvent`s.
 
-1. Wire named rooms to Firebase.
-2. Add realtime state and basic presence.
-3. Upgrade notebook/export into a proper end-of-session artifact.
-4. Add host moderation for custom player-submitted cards.
+### Vite HMR can look like a bug
+
+In dev mode, editing source files reloads the page, which in a multi-tab test can look exactly like an unwanted "page reload bug". The user reported this once — it was Vite, not the app. Production (Firebase Hosting) is static and doesn't behave this way.
+
+### Firebase config errors are silent if env vars are missing
+
+`.env` is gitignored. A fresh checkout with no `.env` will have `firebaseEnabled = false` and the app falls back to local-only mode. Symptoms: rooms work in your tab but don't sync to others. Always check `.env` exists with all `PUBLIC_FIREBASE_*` vars before debugging sync.
+
+---
 
 ## Verification
-
-Current verified command:
 
 ```bash
 npm run build
 ```
 
-Build passes.
+Runs `prebuild` (regenerates card library from CSV, validates) and then full Astro build. Currently passes cleanly.
 
-## Repo Note
+Functional smoke test loop:
 
-At the time of this handover, the working folder is not an initialized git repository yet. The docs are now aligned for a cleaner repo creation point.
+1. `npm run dev`
+2. Open `http://localhost:4321/`
+3. Click "Try the Demo" → should land on the FTR-DEMO board with a pre-built scenario
+4. Click "Play Now" → lobby → create room → framing → game
+5. Open the same room URL in a second browser/incognito → should see the first player's state
+6. Place cards in tab A, observe tab B updates without flash
+7. Advance phases — state should sync, no reverts
+8. Reach Reflection phase → write a note → click Export PDF → browser print dialog opens with formatted summary
 
-## Resume Prompt
+---
 
-If another session picks this up:
+## What's not done yet
 
-> Continue building the Futures Card Game from the current local v1 prototype. The tray, board, phases, host/player model, branching response actions, modal editing, and notebook/export flow are all working locally. Next priority: Firebase-backed shared rooms plus a polished end-of-session artifact. Read `HANDOVER.md` and `README.md` first.
+- **Welsh-language deck.** CSV format makes this a column-add change (`title_cy`, `description_cy`), but the runtime locale switch isn't built. Likely cleanest path: a `?lang=cy` URL param wires through the join flow into a `localeFor(card)` helper at panel render time.
+- **Drag-to-link relationship authoring.** Currently links are heuristic (nearest target). The "Link Cards" button is the manual override. Drag-from-card-edge-to-card-edge would be more discoverable.
+- **Server-side host permissions.** The host distinction is purely UI; there's nothing stopping a non-host editing a card. For workshop use the trust model is fine; for public use it's not.
+- **Polished session capture beyond PDF.** Could add board-snapshot image embedded in the PDF, or a `.pptx` export for slide decks.
+- **Onboarding guided tour.** Most facilitators will figure it out, but a first-run overlay would lower the floor.
+
+---
+
+## If a future agent picks this up
+
+> Continue building the Futures Card Game. The app is deployed at hwbcards.web.app with realtime Firebase sync, a guided framing flow, inline curveballs, custom card creation, in-game framing edit, and PDF export. Card content lives in `content/cards.csv` and is generated to JS at build time. Architecture: Astro static + vanilla JS, Pointer Events for drag, Firestore one-doc-per-room with debounced writes. Read README.md and this file before changing code. The most likely next slices: Welsh-language deck (CSV column-add + runtime locale), board-snapshot embed in PDF, drag-to-link authoring, or workshop facilitator onboarding.

@@ -28,12 +28,10 @@ import GameLayout from '../layouts/GameLayout.astro';
       </div>
 
       <div class="topbar-right">
-        <!-- Participants: avatar chip opens inline roster -->
+        <!-- Participants: synced rail with online dots and host badge.
+             Real joiners arrive via the join-by-link flow (lobby → /framing → /game),
+             so there's no manual "Add player" affordance here. -->
         <div id="participant-rail" class="participant-rail" aria-label="Session participants"></div>
-        <button id="add-participant-btn" class="topbar-btn topbar-btn--icon" type="button" title="Add a participant">+ Player</button>
-        <div class="players-indicator" title="Active player">
-          <div class="player-avatar" id="player-avatar">P</div>
-        </div>
         <div class="topbar-divider" aria-hidden="true"></div>
         <button id="tidy-board-btn" class="topbar-btn" type="button" title="Snap all cards back into the standard timeline layout">↕ Tidy</button>
         <button id="connect-mode-btn" class="topbar-btn connect-btn" type="button" title="Click two cards to draw a connection between them">⤴ Link</button>
@@ -42,6 +40,22 @@ import GameLayout from '../layouts/GameLayout.astro';
         <button id="next-phase-btn" class="topbar-btn primary" type="button">Next: Planning →</button>
       </div>
     </header>
+
+    <!-- Framing context strip — populated by JS from gameState.framing.
+         Click to expand the full breakdown. Hidden until framing is completed. -->
+    <details id="framing-strip" class="framing-strip" hidden>
+      <summary class="framing-strip-summary">
+        <span class="framing-strip-label">Framing</span>
+        <span id="framing-strip-question" class="framing-strip-question"></span>
+      </summary>
+      <div class="framing-strip-body">
+        <div class="framing-strip-row"><strong>Goal:</strong> <span id="framing-strip-goal"></span></div>
+        <div class="framing-strip-row" id="framing-strip-track-row"><strong>Track:</strong> <span id="framing-strip-track"></span></div>
+        <div class="framing-strip-actions">
+          <button id="framing-edit-btn" type="button" class="framing-strip-edit-btn">✎ Edit framing</button>
+        </div>
+      </div>
+    </details>
 
     <main id="board-viewport" aria-label="Game board">
       <div id="board-surface"></div>
@@ -67,11 +81,11 @@ import GameLayout from '../layouts/GameLayout.astro';
         <div class="panel-title" id="panel-title">Card Tray</div>
         <p class="panel-copy" id="panel-copy">Click a card to place it, or drag it onto the table.</p>
 
-        <!-- Facilitation prompt — updated by JS on phase/selection changes -->
-        <div id="panel-faci-prompt" class="panel-faci-prompt" hidden>
-          <div class="panel-faci-label">Ask the group</div>
+        <!-- Facilitation prompt — collapsible so it doesn't crowd the card tray -->
+        <details id="panel-faci-prompt" class="panel-faci-prompt" hidden>
+          <summary class="panel-faci-label">Ask the group</summary>
           <div class="panel-faci-text" id="panel-faci-text"></div>
-        </div>
+        </details>
 
         <div class="panel-mode-tabs" role="tablist" aria-label="Panel modes">
           <button class="panel-mode-tab active" type="button" data-panel-mode="cards">Cards</button>
@@ -79,15 +93,15 @@ import GameLayout from '../layouts/GameLayout.astro';
         </div>
 
         <div id="panel-tabs" class="panel-tabs" role="tablist" aria-label="Card types">
-          <button class="panel-tab" type="button" data-type="action">
+          <button class="panel-tab" type="button" data-type="action" title="Action — build or adapt the path">
             <span class="panel-tab-title">Action</span>
             <span class="panel-tab-copy">Build or adapt the path</span>
           </button>
-          <button class="panel-tab" type="button" data-type="curveball">
+          <button class="panel-tab" type="button" data-type="curveball" title="Curveball — pressure the pathway">
             <span class="panel-tab-title">Curveball</span>
             <span class="panel-tab-copy">Pressure the pathway</span>
           </button>
-          <button class="panel-tab" type="button" data-type="ripple">
+          <button class="panel-tab" type="button" data-type="ripple" title="Ripple — track knock-on effects">
             <span class="panel-tab-title">Ripple</span>
             <span class="panel-tab-copy">Track knock-on effects</span>
           </button>
@@ -113,6 +127,143 @@ import GameLayout from '../layouts/GameLayout.astro';
         <div class="panel-footer-copy">Click a card on the board to inspect and edit it.</div>
       </div>
     </aside>
+
+    <!-- Print-only export view. Hidden in screen mode; @media print swaps the
+         entire app for this section so the browser's "Save as PDF" produces a
+         clean, paper-formatted summary. Populated by JS on Export click. -->
+    <section id="print-view" class="print-view" aria-hidden="true">
+      <header class="print-header">
+        <div class="print-brand">
+          <span class="print-brand-diamond"></span>
+          <span class="print-brand-name">Futures</span>
+          <span class="print-brand-tag">Strategic Foresight Card Game</span>
+        </div>
+        <div class="print-meta">
+          <div><strong>Room</strong> <span id="print-room"></span></div>
+          <div><strong>Generated</strong> <span id="print-date"></span></div>
+        </div>
+      </header>
+
+      <h1 id="print-title" class="print-title">Session summary</h1>
+
+      <!-- 1. Framing -->
+      <section class="print-section">
+        <h2>Framing</h2>
+        <div class="print-framing">
+          <div class="print-framing-block">
+            <div class="print-label">Question</div>
+            <p id="print-framing-question" class="print-paragraph"></p>
+          </div>
+          <div class="print-framing-block">
+            <div class="print-label">Goal</div>
+            <p id="print-framing-goal" class="print-paragraph"></p>
+          </div>
+          <div class="print-framing-block" id="print-framing-track-block">
+            <div class="print-label">Type of session</div>
+            <p id="print-framing-track" class="print-paragraph"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Participants -->
+      <section class="print-section">
+        <h2>Participants</h2>
+        <ul id="print-participants" class="print-participants"></ul>
+      </section>
+
+      <!-- 3. The pathway -->
+      <section class="print-section">
+        <h2>The pathway</h2>
+        <p class="print-section-note">The story the team built — left to right, with curveballs as inline events.</p>
+        <ol id="print-timeline" class="print-timeline"></ol>
+      </section>
+
+      <!-- 4. Ripples (side-effects) -->
+      <section class="print-section" id="print-ripples-section">
+        <h2>Ripple effects</h2>
+        <p class="print-section-note">Knock-on consequences radiating from the pathway.</p>
+        <ul id="print-ripples" class="print-ripples"></ul>
+      </section>
+
+      <!-- 5. Manual connections (drawn links) -->
+      <section class="print-section" id="print-connections-section">
+        <h2>Drawn connections</h2>
+        <p class="print-section-note">Manual links the team drew between cards.</p>
+        <ul id="print-connections" class="print-connections"></ul>
+      </section>
+
+      <!-- 6. Phase notes -->
+      <section class="print-section" id="print-notes-section">
+        <h2>Phase notes</h2>
+        <ul id="print-notes" class="print-notes"></ul>
+      </section>
+
+      <!-- 7. Reflection / conclusion -->
+      <section class="print-section print-section--reflection" id="print-reflection-section">
+        <h2>Reflection</h2>
+        <div id="print-reflection-content"></div>
+      </section>
+
+      <footer class="print-footer">
+        <span>Futures Card Game · futures.hwbcards.web.app</span>
+        <span id="print-page-tag"></span>
+      </footer>
+    </section>
+
+    <!-- Framing-edit modal — opens from the framing strip's Edit button.
+         Edits the composed question + goal as free text; the original shape
+         and slots are preserved underneath in case the user wants to start
+         from /framing again. -->
+    <div id="framing-edit-modal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="framing-edit-modal-title" hidden>
+      <div class="app-modal-card" data-card-type="beginning">
+        <div class="app-modal-accent" aria-hidden="true"></div>
+        <header class="app-modal-header">
+          <span class="app-modal-chip">Framing</span>
+          <h2 id="framing-edit-modal-title" class="app-modal-title">Refine the framing</h2>
+          <p class="app-modal-copy">Tweak wording, fix grammar, or refine your goal — useful when slot text doesn't quite read right.</p>
+        </header>
+        <div class="app-modal-body">
+          <label class="app-modal-field">
+            <span class="app-modal-field-label">Question</span>
+            <textarea id="framing-edit-question-input" rows="2" maxlength="280" placeholder="How might [system] respond to [challenge] by [horizon]?"></textarea>
+          </label>
+          <label class="app-modal-field">
+            <span class="app-modal-field-label">Goal</span>
+            <textarea id="framing-edit-goal-input" rows="3" maxlength="280" placeholder="The future state you're aiming for or testing against."></textarea>
+          </label>
+        </div>
+        <div class="app-modal-actions">
+          <button id="framing-edit-cancel-btn" type="button" class="app-modal-btn app-modal-btn--ghost">Cancel</button>
+          <button id="framing-edit-save-btn" type="button" class="app-modal-btn app-modal-btn--primary">Save changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom-card modal — replaces native prompt() with an in-app dialog -->
+    <div id="custom-card-modal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="custom-card-modal-title" hidden>
+      <div class="app-modal-card" data-card-type="action">
+        <div class="app-modal-accent" aria-hidden="true"></div>
+        <header class="app-modal-header">
+          <span id="custom-card-type-chip" class="app-modal-chip">Action</span>
+          <h2 id="custom-card-modal-title" class="app-modal-title">Create a custom card</h2>
+          <p class="app-modal-copy">Capture an idea, response, or observation that isn't in the deck.</p>
+        </header>
+        <div class="app-modal-body">
+          <label class="app-modal-field">
+            <span class="app-modal-field-label">Title</span>
+            <input id="custom-card-title-input" type="text" maxlength="80" placeholder="Short label that reads on the card" required />
+          </label>
+          <label class="app-modal-field">
+            <span class="app-modal-field-label">Description <span class="app-modal-field-optional">— optional</span></span>
+            <textarea id="custom-card-desc-input" rows="3" maxlength="280" placeholder="Add context the group should see when they open the card."></textarea>
+          </label>
+        </div>
+        <div class="app-modal-actions">
+          <button id="custom-card-cancel-btn" type="button" class="app-modal-btn app-modal-btn--ghost">Cancel</button>
+          <button id="custom-card-create-btn" type="button" class="app-modal-btn app-modal-btn--primary">Create card</button>
+        </div>
+      </div>
+    </div>
   </div>
 </GameLayout>
 
@@ -165,15 +316,14 @@ import GameLayout from '../layouts/GameLayout.astro';
     const storageKey      = `futures:room:${roomCode}`;
     const isDemoRoom      = roomCode === 'FTR-DEMO';
 
-    // Update topbar room code and avatar immediately (before async work).
+    // Update topbar room code immediately (before async work). The
+    // participant rail (`#participant-rail`) is the single source of truth
+    // for "who's in the room" — no separate single-avatar element.
     const roomCodeButton = document.getElementById('room-code-button');
-    const playerAvatar   = document.getElementById('player-avatar');
-    if (!roomCodeButton || !playerAvatar) return;
+    if (!roomCodeButton) return;
 
     safeStorageSet('futures:last-player-name', playerName);
     roomCodeButton.textContent = roomCode;
-    playerAvatar.textContent   = playerName.slice(0, 2).toUpperCase();
-    playerAvatar.setAttribute('aria-label', playerName);
 
     // Copy room code to clipboard on click.
     roomCodeButton.addEventListener('click', async () => {
@@ -215,6 +365,7 @@ import GameLayout from '../layouts/GameLayout.astro';
 
     const engine = initGame(roomCode, {
       playerName,
+      sessionId: syncHandle?.sessionId || null,
       initialState,
       onStateChange(nextState) {
         // Always keep localStorage as an offline backup.
@@ -235,6 +386,11 @@ import GameLayout from '../layouts/GameLayout.astro';
         applyingRemote = false;
       });
     }
+
+    // ── 5. Heartbeat — keep this tab marked as "online" in the synced state.
+    // Other tabs render us as idle if our lastSeenAt drifts beyond ~45s.
+    const HEARTBEAT_MS = 20 * 1000;
+    window.setInterval(() => engine.heartbeat(), HEARTBEAT_MS);
   }
 
   if (document.readyState === 'loading') {

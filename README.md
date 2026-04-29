@@ -1,115 +1,120 @@
 # Futures Card Game
 
-A local-first futures workshop prototype built with Astro and vanilla JavaScript.
+A real-time multiplayer strategic foresight card game for the browser, digitising a workshop format used by Welsh public service boards, environmental planners, and policy teams.
 
-The product direction is now clearer than it was at the start of the repo: this is not a generic whiteboard. It is a guided card game for exploring a future issue, building a pathway, introducing disruptions, tracing ripple effects, and leaving the session with a usable story and conclusion.
+Teams build a **pathway** between a starting situation and a goal, then stress-test that plan with **curveballs** (disruptions) and **ripples** (consequences).
 
-## Current Product Shape
+**Live at: [hwbcards.web.app](https://hwbcards.web.app)**
 
-The current prototype supports a single local browser session with a lightweight `Host + Players` model.
+---
 
-Players can:
-
-- define a starting situation and end goal
-- build a core pathway with action cards
-- introduce curveballs that pressure the pathway
-- add ripple cards that show wider effects
-- add response actions after disruption instead of freezing the story
-- click any board card to edit it in a modal
-- capture phase takeaways in a notebook/export view
-- generate a more structured workshop summary with signals and next steps
-
-The app is usable as a local v1 prototype. It is not yet a shared realtime multiplayer product.
-
-## Routes
-
-- `/` landing page
-- `/about` rules / framing page
-- `/lobby` create or join a named room
-- `/game` seeded demo board for quick testing
-- `/game?room=FTR-ABCD` named local room
-
-Room state is currently stored in `localStorage` per room code, so a room can be reopened in the same browser. Different devices do not sync yet.
-
-## Gameplay Model
-
-The current board flow is:
-
-1. `Setup`
-   Click the blue anchor cards and define the present situation plus desired future.
-2. `Planning`
-   Use action cards to build the main pathway.
-3. `Curveball`
-   Add disruptions and, if needed, branch in new response actions.
-4. `Ripple`
-   Show knock-on effects of actions, disruptions, or adaptations.
-5. `Reflection`
-   Review the board and capture the key takeaway in the notebook/export panel.
-
-Important interaction rules:
-
-- Any board card click opens the editor modal.
-- Dragging is still supported, but it only starts after real pointer movement so it does not fight with editing.
-- The core pathway reflows into a stable `beginning -> actions -> end goal` order.
-- Response actions stay off the core path and branch from a chosen source card.
-- Curveballs and ripples auto-link to nearby or selected source cards and render with relationship lines plus badges.
-- In later phases, the tray explains what a new card will do now, including the current focus card it will pressure, affect, or respond to.
-
-## Stack
-
-- Astro for pages and layout
-- vanilla JavaScript for board state, phases, layout, and drag interactions
-- CSS files for the board, panel, and card system
-- Firebase helpers scaffolded for future auth / shared persistence
-
-## Running Locally
+## Quick start
 
 ```bash
 npm install
 npm run dev
-npm run build
-npm run preview
 ```
 
-`npm run build` currently passes.
+The dev server runs at `http://localhost:4321`. The `predev` hook regenerates the card library from `content/cards.csv` automatically.
 
-## Project Structure
+```bash
+npm run build       # production build (also regenerates cards via prebuild)
+npm run preview     # serve the built bundle
+npm run cards:build # regenerate src/scripts/data/card-library.js from content/cards.csv
+```
+
+---
+
+## Routes
+
+| Path | Purpose |
+|---|---|
+| `/` | Landing page with feature overview |
+| `/about` | Rules + how a session unfolds |
+| `/lobby` | Create a new room or join an existing one by code |
+| `/framing?room=…&name=…` | Pre-game framing — agree the question shape, slots, and goal |
+| `/game?room=…&name=…` | The board (real users arrive via lobby + framing) |
+| `/game` | `FTR-DEMO` seeded board — no Firebase, fresh every load, useful for showing the product |
+
+---
+
+## Gameplay flow
+
+1. **Setup** — drop the blue Begin card (today's situation) and End card (the future you're aiming for). The framing's `presentState`/`system` slot pre-fills the begin title; the goal becomes the end card.
+2. **Planning** — build the pathway with action cards. They sit left-to-right between begin and end.
+3. **Curveball** — drop disruptions onto the timeline. Curveballs are *inline events*: they insert after the action they pressure, pushing later cards right. Any actions added afterwards read as the team's response by virtue of their position.
+4. **Ripple** — map knock-on consequences. Ripples branch *off* the timeline above/below — they're parallel effects, not events on the path.
+5. **Reflection** — review the board, capture the headline takeaway in the Notebook, and Export PDF for a formatted session record.
+
+---
+
+## Stack
+
+- **Astro** for static pages and the game shell (no SSR)
+- **Vanilla JavaScript** for game state and interaction systems
+- **CSS** with phase-aware custom properties — colour switches with the active phase
+- **Pointer Events** for drag (HTML Drag API doesn't compose with CSS transforms)
+- **Firebase Firestore** for room state and realtime sync
+- **Firebase Anonymous Auth** for participant identity
+- **Firebase Hosting** for deployment (auto-rebuilds on push)
+- **`window.print()`** for PDF export — no jsPDF in client bundle
+
+---
+
+## Project structure
 
 ```text
+content/
+  cards.csv                     ← human-edited source of truth for the deck
+scripts/
+  build-card-library.mjs        ← CSV → JS module generator
 src/
-├── components/
-├── layouts/
-├── pages/
-│   ├── index.astro
-│   ├── about.astro
-│   ├── lobby.astro
-│   └── game.astro
-├── scripts/
-│   ├── data/
-│   ├── firebase/
-│   ├── game/
-│   └── utils/
-└── styles/
+  pages/
+    index.astro                 ← landing
+    about.astro                 ← rules
+    lobby.astro                 ← create/join room
+    framing.astro               ← pre-game framing form
+    game.astro                  ← board shell + boot logic
+  scripts/
+    data/
+      card-library.js           ← AUTO-GENERATED — do not hand-edit
+    firebase/
+      config.js                 ← Firebase init from env vars
+      auth.js                   ← anonymous sign-in
+      sync.js                   ← Firestore room sync (debounced writes)
+    framing/
+      templates.js              ← question shapes, slots, helper text
+    game/
+      engine.js                 ← orchestrator (read this first)
+      board.js                  ← zoom/pan + screen↔board coordinates
+      card.js                   ← board/panel card DOM creation
+      drag.js                   ← Pointer Events drag system
+      phases.js                 ← phase state machine + allowed card types
+      timeline.js               ← left-to-right layout + connection arrows
+  styles/
+    board.css panel.css cards.css global.css lobby.css
 ```
 
-Key game files:
+---
 
-- `src/scripts/game/engine.js`
-  Main board orchestration: phases, placement rules, panel state, modal editing, participants, notebook/export, and persistence callbacks.
-- `src/scripts/game/drag.js`
-  Pointer-based drag system for tray placement and board repositioning.
-- `src/scripts/game/timeline.js`
-  Main pathway and relationship line drawing.
-- `src/scripts/game/board.js`
-  Zoom/pan transform controller and board coordinate maths.
-- `src/scripts/game/card.js`
-  DOM creation for board cards and tray cards.
+## Card content workflow
 
-## Firebase Setup
+Cards are content, not code. To add or edit cards:
 
-Firebase is optional right now. The helpers are scaffolded but not wired into the board UI yet.
+1. Open `content/cards.csv` in Excel, Google Sheets, or any text editor.
+2. Add a row: `id,type,title,description` (e.g. `CRV-13,curveball,Vendor goes bust,Your tech provider exits the market.`).
+3. Save. The next `npm run dev` or `npm run build` regenerates `src/scripts/data/card-library.js` automatically.
+4. Validation (run on every regen) catches: duplicate IDs, invalid `type` values, missing required fields, mismatched columns. Errors point to the specific line.
 
-If you want to work on auth or shared room sync next, add these public env vars to `.env`:
+Run `npm run cards:build` standalone to regenerate without starting the dev server.
+
+The generated file is committed to git so a fresh clone works without first running the generator.
+
+---
+
+## Firebase setup
+
+Required env vars in `.env` for the room-sync features:
 
 ```bash
 PUBLIC_FIREBASE_API_KEY=
@@ -121,30 +126,28 @@ PUBLIC_FIREBASE_APP_ID=
 PUBLIC_FIREBASE_DATABASE_URL=
 ```
 
-The Firebase helpers now fail clearly when config is missing instead of silently booting a broken client.
+Without these, the app falls back to local-only mode (state persists to `localStorage`, no cross-tab sync). The `FTR-DEMO` room always runs local-only by design.
 
-## What Works Well Now
+Firestore security rules live at the project level — they require `request.auth != null` (anonymous sign-in is allowed). Each room is a single document at `rooms/{roomCode}` with the entire state in a `state` field, written with debounced merges so rapid edits don't flood Firestore.
 
-- clearer board focus with less on-canvas clutter
-- whole-card click editing instead of tiny `E` / `X` controls
-- host/player switching and ownership badges
-- stronger card-type switching in the tray, including clearer response/curveball/ripple intent
-- notebook/export mode that expands wider, hides the card tray, and uses the captured phase notes
-- branching response actions so the game is not locked to a single rigid line
-- more useful workshop output sections, including signals to watch and immediate next steps
+---
 
-## Current Limits
+## Deployment
 
-- no realtime multiplayer sync across browsers
-- no Firestore-backed room loading yet
-- no cursor / presence system
-- story export is still text-first rather than a polished facilitation artifact
-- link attachment is still proximity/select based rather than explicit drag-to-link interaction
+Static hosting via Firebase Hosting:
 
-## Recommended Next Steps
+```bash
+npm run build              # also runs prebuild → cards:build
+firebase deploy --only hosting
+```
 
-1. Replace local room persistence with Firebase-backed room state.
-2. Add presence and shared cursor awareness for remote sessions.
-3. Turn notebook/export into a proper end-of-session artifact: structured summary, PDF, and board capture.
-4. Add player-submitted custom cards with host approval.
-5. Add a clearer in-app onboarding layer for first-time facilitators.
+`firebase.json` rewrites all routes to `/index.html` so Astro's client-side routing works in static-served mode.
+
+---
+
+## Known limitations
+
+- **Connection lines and ripple anchors are heuristic.** Curveballs/ripples auto-link to the nearest plausible target; users can override with the Link Cards button (manual drag-to-link), but there's no first-class "this connects to that" authoring flow.
+- **Welsh-language deck not yet wired.** The CSV format makes this a one-column-add change, but the runtime locale switch isn't built. See [HANDOVER.md](HANDOVER.md).
+- **Heartbeat is local-only**, which is correct for not racing phase changes but means a purely-idle observer's "online" dot can drift stale on other tabs. Active players refresh each other through the normal state writes.
+- **No host-only permissions** are enforced server-side. The role distinction is purely UI affordance.

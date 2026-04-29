@@ -1,0 +1,45 @@
+id,type,title,description
+ACT-01,action,Commission Evidence Review,"Gather and analyse existing research, data, and evidence to inform decision-making."
+ACT-02,action,Hold Stakeholder Workshop,Bring together key stakeholders for collaborative planning and input gathering.
+ACT-03,action,Draft Policy Brief,"Write a concise policy document outlining the issue, options, and recommendations."
+ACT-04,action,Engage Community Groups,Reach out to local community organisations to understand needs and build support.
+ACT-05,action,Conduct Environmental Impact Assessment,Evaluate the potential environmental consequences of proposed actions or policies.
+ACT-06,action,Secure Funding Approval,Prepare and submit a business case to secure the necessary budget and resources.
+ACT-07,action,Establish Working Group,Form a cross-organisational team with clear terms of reference and membership.
+ACT-08,action,Run Public Consultation,Design and deliver a formal public consultation to gather citizen views and feedback.
+ACT-09,action,Develop Implementation Plan,"Create a detailed plan with milestones, responsibilities, and timescales."
+ACT-10,action,Commission Pilot Programme,Design and launch a small-scale trial to test the approach before wider rollout.
+ACT-11,action,Build Partnership Agreement,Formalise collaboration with partner organisations through a shared agreement.
+ACT-12,action,Conduct Training Programme,Deliver training to upskill staff and partners in the required capabilities.
+ACT-13,action,Review Legislative Framework,Analyse the relevant legislation and regulatory requirements that apply.
+ACT-14,action,Set Up Monitoring Framework,"Design metrics, indicators, and reporting mechanisms to track progress."
+ACT-15,action,Produce Communications Strategy,"Plan how to inform, engage, and update the public and stakeholders throughout."
+ACT-16,action,Carry Out Risk Assessment,"Identify, analyse, and plan mitigations for key risks to delivery."
+ACT-17,action,Align With Well-being Objectives,Map proposed actions against the Well-being of Future Generations Act goals.
+ACT-18,action,Conduct Equality Impact Assessment,Assess how proposals affect different groups and ensure equity considerations.
+ACT-19,action,Submit Report to Board,Present findings and recommendations to the governing board for approval.
+ACT-20,action,Scale Up Delivery,Expand the programme or service from pilot to full-scale operation.
+CRV-01,curveball,Budget Cuts Announced,A significant reduction in available funding requires you to reprioritise and scale back plans.
+CRV-02,curveball,Key Staff Member Leaves,A critical person driving the work moves on. Knowledge and momentum are at risk.
+CRV-03,curveball,Election Changes Priorities,A change in political leadership shifts the policy agenda. Your project may lose or gain support.
+CRV-04,curveball,Public Opposition Emerges,Community groups or media raise strong objections to the proposed approach.
+CRV-05,curveball,New Legislation Introduced,A new law or regulation changes the rules. You must adapt your plans to comply.
+CRV-06,curveball,Partner Organisation Withdraws,"A key partner pulls out of the collaboration, leaving a gap in resources or expertise."
+CRV-07,curveball,Extreme Weather Event,"A flood, storm, or heatwave disrupts services and diverts resources to emergency response."
+CRV-08,curveball,Data Breach or Cyber Incident,A security incident compromises data and public trust. Recovery becomes a priority.
+CRV-09,curveball,Demand Surge,An unexpected spike in demand for the service overwhelms current capacity.
+CRV-10,curveball,Media Scrutiny,Negative media coverage puts the project under intense public and political pressure.
+CRV-11,curveball,Supply Chain Disruption,"Materials, technology, or services you depend on become unavailable or delayed."
+CRV-12,curveball,Pandemic or Public Health Emergency,A health crisis redirects all attention and resources to immediate public health response.
+RPL-01,ripple,Improved Public Trust,Transparent and effective action strengthens community confidence in your organisation.
+RPL-02,ripple,Cross-departmental Collaboration,The work breaks down silos and fosters collaboration across teams and organisations.
+RPL-03,ripple,Policy Cited in National Guidance,Your approach is recognised as best practice and referenced in national-level documents.
+RPL-04,ripple,Staff Morale Boost,Seeing tangible progress and impact re-energises and motivates the team.
+RPL-05,ripple,Unintended Negative Consequence,An action produces an unforeseen harmful side effect that needs addressing.
+RPL-06,ripple,Increased Community Engagement,Local people become more involved and invested in public decision-making.
+RPL-07,ripple,Cost Savings Realised,Efficiencies from the work generate savings that can be reinvested elsewhere.
+RPL-08,ripple,Knowledge Spillover,"Lessons learned transfer to other projects, teams, or organisations."
+RPL-09,ripple,Environmental Co-benefits,Actions deliver additional environmental gains beyond the original objective.
+RPL-10,ripple,Political Capital Gained,Successful delivery builds political support for further ambitious action.
+RPL-11,ripple,Capacity Strain,The demands of delivery stretch organisational capacity and create fatigue.
+RPL-12,ripple,New Partnership Opportunity,The work attracts interest from a new organisation wanting to collaborate.

@@ -1,0 +1,960 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<BaseLayout title="Frame the Future">
+  <Header currentPage="play" />
+
+  <main class="framing-page">
+    <div class="framing-container">
+      <header class="framing-hero">
+        <div class="framing-badge">
+          <span class="badge-dot"></span>
+          Step 2 of 2 — Frame your play
+        </div>
+        <h1 class="framing-title">Before you build pathways</h1>
+        <p class="framing-subtitle">
+          Agree on the question you're exploring and the goal you're aiming for.
+          Weak framing makes the rest of the game feel creative but go nowhere.
+        </p>
+        <div id="framing-room-line" class="framing-room-line"></div>
+      </header>
+
+      <!-- Shared editable form — collaborators co-edit until someone hits Start. -->
+      <section id="framing-form-section" class="framing-form-section">
+
+        <!-- Track: a slim pill toggle with a popover explainer. Defaults to "substantial". -->
+        <div class="framing-track-row">
+          <span class="framing-track-row-label">Type of session</span>
+          <div id="framing-track-options" class="framing-track-pills"></div>
+          <button id="framing-track-info-btn" type="button" class="framing-info-btn" aria-expanded="false" aria-controls="framing-track-info-popover" title="What's the difference?">i</button>
+          <div id="framing-track-info-popover" class="framing-info-popover" hidden>
+            <p><strong>Substantial goal</strong> — a societal, policy, or strategic outcome you want futures thinking to help reach.</p>
+            <p><strong>Practical goal</strong> — you want to run a foresight process or exercise (e.g. with a particular group) — the goal is the doing.</p>
+          </div>
+        </div>
+
+        <!-- Section 1: pick a question shape -->
+        <fieldset class="framing-fieldset framing-fieldset--shape">
+          <legend>1. Pick your question shape</legend>
+          <p class="framing-helper">
+            Three shapes, depending on what you want from the game. The placeholders show what each slot expects.
+          </p>
+          <div id="framing-shape-options" class="framing-radio-group"></div>
+        </fieldset>
+
+        <!-- Section 2: fill in slots, see the composed question live -->
+        <fieldset id="framing-slots-fieldset" class="framing-fieldset framing-fieldset--slots" hidden>
+          <legend>2. Fill in your question</legend>
+          <div id="framing-slots"></div>
+          <div class="framing-question-preview">
+            <span class="framing-question-preview-label">Composed question</span>
+            <p id="framing-question-preview-text"></p>
+          </div>
+        </fieldset>
+
+        <!-- Section 3: goal -->
+        <fieldset class="framing-fieldset framing-fieldset--goal">
+          <legend>3. Your goal</legend>
+          <p class="framing-helper">
+            The future state you're aiming for or testing against — not the steps to get there.
+          </p>
+          <textarea id="framing-goal" rows="3" maxlength="280" placeholder="e.g. A regional adaptation plan adopted by all four boards by 2041."></textarea>
+        </fieldset>
+
+        <!-- Quick test (sanity gate, lives next to the Start button) -->
+        <div class="framing-quick-test">
+          <div class="framing-quick-test-heading">Before you start — three quick checks</div>
+          <ol class="framing-quick-test-grid">
+            <li>
+              <span class="framing-quick-test-num">1</span>
+              <div>
+                <strong>Surprise.</strong>
+                Could you imagine being genuinely surprised by where the game ends up?
+                <span class="framing-quick-test-hint">If no, the question is too closed.</span>
+              </div>
+            </li>
+            <li>
+              <span class="framing-quick-test-num">2</span>
+              <div>
+                <strong>One sentence.</strong>
+                Could a colleague describe your goal in one sentence?
+                <span class="framing-quick-test-hint">If no, it's too vague.</span>
+              </div>
+            </li>
+            <li>
+              <span class="framing-quick-test-num">3</span>
+              <div>
+                <strong>Real uncertainty.</strong>
+                Could the system itself change in your horizon, not just the actors in it?
+                <span class="framing-quick-test-hint">If no, you're doing strategy, not foresight.</span>
+              </div>
+            </li>
+          </ol>
+        </div>
+
+        <div class="framing-actions">
+          <button id="framing-start-btn" type="button" class="framing-btn framing-btn--primary" disabled>Start the game →</button>
+          <button id="framing-skip-btn" type="button" class="framing-btn framing-btn--ghost" title="Skip framing and go straight to the board">Skip for now</button>
+          <span id="framing-status" class="framing-status" aria-live="polite"></span>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style is:global>
+  .framing-page {
+    min-height: 100vh;
+    padding: 80px 18px 60px;
+    background:
+      radial-gradient(ellipse at 30% 0%, rgba(59, 130, 246, 0.08), transparent 50%),
+      linear-gradient(180deg, var(--color-bg-warm) 0%, var(--color-bg) 70%);
+  }
+
+  .framing-container {
+    max-width: 760px;
+    margin: 0 auto;
+    display: grid;
+    gap: 28px;
+  }
+
+  .framing-hero { text-align: center; }
+
+  .framing-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.7);
+    border: 1px solid var(--color-border);
+    margin-bottom: 18px;
+  }
+
+  .badge-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--color-blue);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .framing-title {
+    font-size: clamp(2rem, 4vw, 2.6rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+
+  .framing-subtitle {
+    color: var(--color-text-secondary);
+    font-size: 1rem;
+    line-height: 1.7;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  .framing-room-line {
+    margin-top: 14px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+  }
+
+  .framing-room-line strong {
+    color: var(--color-text);
+    font-weight: 700;
+  }
+
+  /* Track row — slim pill toggle with explainer popover */
+  .framing-track-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  .framing-track-row-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .framing-track-pills {
+    display: inline-flex;
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .framing-track-pill {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 6px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+  }
+
+  .framing-track-pill:hover {
+    color: var(--color-text);
+    background: rgba(59, 130, 246, 0.08);
+  }
+
+  .framing-track-pill.is-selected {
+    background: var(--color-blue);
+    color: white;
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.35);
+  }
+
+  .framing-track-pill.is-selected:hover {
+    background: var(--color-blue);
+    color: white;
+  }
+
+  .framing-info-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-raised);
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-style: italic;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+
+  .framing-info-btn:hover {
+    background: white;
+    color: var(--color-text);
+    border-color: var(--color-border-strong);
+  }
+
+  .framing-info-popover {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    max-width: 360px;
+    background: white;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: var(--shadow-md);
+    font-size: 0.84rem;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    z-index: 5;
+  }
+
+  .framing-info-popover[hidden] { display: none; }
+
+  .framing-info-popover p {
+    margin: 0 0 8px;
+  }
+
+  .framing-info-popover p:last-child { margin-bottom: 0; }
+
+  .framing-info-popover strong { color: var(--color-text); }
+
+  /* Three checks — numbered, lives next to the Start button */
+  .framing-quick-test {
+    background: rgba(59, 130, 246, 0.04);
+    border: 1px solid rgba(59, 130, 246, 0.16);
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+
+  .framing-quick-test-heading {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-blue);
+    margin-bottom: 10px;
+  }
+
+  .framing-quick-test-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .framing-quick-test-grid li {
+    display: flex;
+    gap: 10px;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    color: var(--color-text);
+  }
+
+  .framing-quick-test-num {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--color-blue);
+    color: white;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.78rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .framing-quick-test-grid li strong {
+    display: inline;
+    color: var(--color-text);
+    font-weight: 700;
+  }
+
+  .framing-quick-test-hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.76rem;
+    color: var(--color-text-secondary);
+    font-style: italic;
+  }
+
+  @media (max-width: 720px) {
+    .framing-quick-test-grid { grid-template-columns: 1fr; }
+  }
+
+  .framing-form-section {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: var(--shadow-md);
+    display: grid;
+    gap: 22px;
+  }
+
+  /* Each numbered fieldset gets a coloured left-stripe in the section's
+     "phase colour", echoing the topbar accent the user sees in the game. */
+  .framing-fieldset {
+    border: none;
+    padding: 14px 16px 14px 18px;
+    margin: 0;
+    display: grid;
+    gap: 10px;
+    border-left: 4px solid var(--section-color, var(--color-blue));
+    background: var(--section-tint, rgba(59, 130, 246, 0.04));
+    border-radius: 0 12px 12px 0;
+  }
+
+  .framing-fieldset--shape {
+    --section-color: var(--color-blue);
+    --section-tint: rgba(59, 130, 246, 0.04);
+  }
+
+  .framing-fieldset--slots {
+    --section-color: var(--color-yellow, #e5a100);
+    --section-tint: rgba(229, 161, 0, 0.05);
+  }
+
+  .framing-fieldset--goal {
+    --section-color: var(--color-green, #059669);
+    --section-tint: rgba(5, 150, 105, 0.05);
+  }
+
+  .framing-fieldset legend {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.98rem;
+    color: var(--section-color, var(--color-text));
+    margin-bottom: 4px;
+    padding: 0 6px;
+    background: var(--color-surface);
+    border-radius: 4px;
+  }
+
+  .framing-helper {
+    margin: 0;
+    font-size: 0.84rem;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+  }
+
+  .framing-radio-group {
+    display: grid;
+    gap: 8px;
+  }
+
+  .framing-radio-option {
+    display: flex;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 12px;
+    background: rgba(255,255,255,0.6);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .framing-radio-option:hover {
+    background: white;
+    border-color: var(--color-border-strong);
+  }
+
+  .framing-radio-option.is-selected {
+    border-color: var(--section-color, var(--color-blue));
+    background: white;
+    box-shadow: 0 0 0 1.5px var(--section-color, var(--color-blue));
+  }
+
+  .framing-radio-option input { margin-top: 2px; }
+
+  .framing-radio-content {
+    display: grid;
+    gap: 4px;
+  }
+
+  .framing-radio-label {
+    font-weight: 700;
+    color: var(--color-text);
+    font-size: 0.92rem;
+  }
+
+  .framing-radio-helper {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    line-height: 1.45;
+  }
+
+  .framing-radio-template {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    background: rgba(0,0,0,0.03);
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin-top: 4px;
+    display: inline-block;
+  }
+
+  #framing-slots {
+    display: grid;
+    gap: 12px;
+  }
+
+  .framing-slot label {
+    display: block;
+    font-weight: 700;
+    font-size: 0.88rem;
+    margin-bottom: 4px;
+  }
+
+  .framing-slot-helper {
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+    margin-bottom: 6px;
+  }
+
+  .framing-slot input,
+  #framing-goal {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.92rem;
+    color: var(--color-text);
+    background: white;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .framing-slot input:focus,
+  #framing-goal:focus {
+    outline: none;
+    border-color: var(--section-color, var(--color-blue));
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  }
+
+  /* Darken the placeholder text — the previous grey was hard to read on
+     near-white inputs. Keep it lower contrast than the user's typed text. */
+  .framing-slot input::placeholder,
+  #framing-goal::placeholder {
+    color: rgba(28, 25, 23, 0.45);
+    font-style: italic;
+  }
+
+  .framing-question-preview {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.18);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 4px;
+  }
+
+  .framing-question-preview-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-blue);
+  }
+
+  #framing-question-preview-text {
+    margin: 4px 0 0;
+    font-size: 0.92rem;
+    font-style: italic;
+    color: var(--color-text);
+    line-height: 1.5;
+  }
+
+  .framing-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .framing-btn {
+    padding: 10px 22px;
+    border-radius: 999px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+  }
+
+  .framing-btn--primary {
+    background: var(--color-blue);
+    color: white;
+  }
+
+  .framing-btn--primary:hover:not(:disabled) {
+    background: var(--color-blue-dark, #1d4ed8);
+    transform: translateY(-1px);
+  }
+
+  .framing-btn--primary:disabled {
+    background: var(--color-border);
+    color: var(--color-text-muted);
+    cursor: not-allowed;
+  }
+
+  .framing-btn--ghost {
+    background: transparent;
+    color: var(--color-text-secondary);
+    border-color: var(--color-border);
+  }
+
+  .framing-btn--ghost:hover {
+    background: rgba(0,0,0,0.04);
+    color: var(--color-text);
+  }
+
+  .framing-status {
+    font-size: 0.84rem;
+    color: var(--color-text-muted);
+  }
+
+  .framing-status[data-tone="ok"] { color: var(--color-green); }
+  .framing-status[data-tone="error"] { color: var(--color-red); }
+
+</style>
+
+<script>
+  import { doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
+  import { db, firebaseEnabled } from '../scripts/firebase/config.js';
+  import { signInAnon } from '../scripts/firebase/auth.js';
+  import {
+    TRACKS,
+    SHAPES,
+    composeQuestion,
+    emptyFraming,
+    getShape,
+  } from '../scripts/framing/templates.js';
+
+  function safeStorageGet(key) {
+    try { return window.localStorage.getItem(key); } catch { return null; }
+  }
+  function safeStorageSet(key, value) {
+    try { window.localStorage.setItem(key, value); } catch {}
+  }
+
+  function gotoGame(roomCode, name) {
+    const url = new URL('/game', window.location.origin);
+    url.searchParams.set('room', roomCode);
+    url.searchParams.set('name', name);
+    window.location.assign(url.toString());
+  }
+
+  // Build a small DOM helper that creates an element with attributes/children.
+  // Avoids any innerHTML use with user-controlled values.
+  function el(tag, props = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [key, value] of Object.entries(props)) {
+      if (key === 'class') node.className = value;
+      else if (key === 'dataset') Object.assign(node.dataset, value);
+      else if (key in node) node[key] = value;
+      else node.setAttribute(key, value);
+    }
+    for (const child of children.flat()) {
+      if (child == null) continue;
+      node.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
+    }
+    return node;
+  }
+
+  async function bootFraming() {
+    const params = new URLSearchParams(window.location.search);
+    const roomCode = (params.get('room') || '').trim().toUpperCase();
+    const playerName = (params.get('name') || safeStorageGet('futures:last-player-name') || '').trim();
+
+    // No room or no name → bounce back to lobby. The lobby validates both.
+    if (!roomCode || !playerName) {
+      window.location.assign('/lobby');
+      return;
+    }
+
+    // Demo room never goes through framing.
+    if (roomCode === 'FTR-DEMO') {
+      gotoGame(roomCode, playerName);
+      return;
+    }
+
+    safeStorageSet('futures:last-player-name', playerName);
+
+    // Render the room/player line via DOM nodes (no innerHTML).
+    const roomLine = document.getElementById('framing-room-line');
+    roomLine.append(
+      'Room ', el('strong', {}, roomCode), ' · You\'re ', el('strong', {}, playerName),
+    );
+
+    // ── Local form state ────────────────────────────────────────────────────
+    // Framing is a shared canvas during the pre-game step — anyone in the
+    // room can edit it. Once someone hits "Start the game", the `completed`
+    // flag flips and everyone follows them into /game. The host concept only
+    // becomes meaningful in /game, where it gates random-deal and add-player.
+    let local = emptyFraming();
+    // Default the track to "substantial" so the user only has to think about
+    // it if they want to. The pill control still surfaces both options.
+    local.track = 'substantial';
+    let suspendRemoteApply = false;
+
+    // ── Firebase init (graceful fallback to local-only) ────────────────────
+    let roomRef = null;
+    let firebaseReady = false;
+    if (firebaseEnabled && db) {
+      try {
+        await signInAnon();
+        roomRef = doc(db, 'rooms', roomCode);
+        firebaseReady = true;
+      } catch (err) {
+        console.warn('[framing] Firebase unavailable, running local-only:', err);
+      }
+    }
+
+    // ── Render targets ──────────────────────────────────────────────────────
+    const trackOptionsEl = document.getElementById('framing-track-options');
+    const shapeOptionsEl = document.getElementById('framing-shape-options');
+    const slotsFieldset = document.getElementById('framing-slots-fieldset');
+    const slotsEl = document.getElementById('framing-slots');
+    const previewEl = document.getElementById('framing-question-preview-text');
+    const goalEl = document.getElementById('framing-goal');
+    const startBtn = document.getElementById('framing-start-btn');
+    const skipBtn = document.getElementById('framing-skip-btn');
+    const statusEl = document.getElementById('framing-status');
+
+    function setStatus(message, tone = '') {
+      statusEl.textContent = message;
+      if (tone) statusEl.dataset.tone = tone; else delete statusEl.dataset.tone;
+    }
+
+    function renderTracks() {
+      trackOptionsEl.replaceChildren(
+        ...TRACKS.map((track) => {
+          const btn = el('button', {
+            type: 'button',
+            class: `framing-track-pill${local.track === track.id ? ' is-selected' : ''}`,
+            'aria-pressed': local.track === track.id ? 'true' : 'false',
+            title: track.helper,
+          }, track.label);
+          btn.addEventListener('click', () => {
+            local.track = track.id;
+            renderTracks();
+            scheduleWrite();
+            updateStartEnabled();
+          });
+          return btn;
+        }),
+      );
+    }
+
+    // ── Track explainer popover ──────────────────────────────────────────────
+    const trackInfoBtn = document.getElementById('framing-track-info-btn');
+    const trackInfoPopover = document.getElementById('framing-track-info-popover');
+    if (trackInfoBtn && trackInfoPopover) {
+      trackInfoBtn.addEventListener('click', () => {
+        const showing = !trackInfoPopover.hasAttribute('hidden');
+        if (showing) {
+          trackInfoPopover.setAttribute('hidden', '');
+          trackInfoBtn.setAttribute('aria-expanded', 'false');
+        } else {
+          trackInfoPopover.removeAttribute('hidden');
+          trackInfoBtn.setAttribute('aria-expanded', 'true');
+        }
+      });
+      // Click-outside to close
+      document.addEventListener('click', (e) => {
+        if (trackInfoPopover.hasAttribute('hidden')) return;
+        if (e.target === trackInfoBtn || trackInfoPopover.contains(e.target)) return;
+        trackInfoPopover.setAttribute('hidden', '');
+        trackInfoBtn.setAttribute('aria-expanded', 'false');
+      });
+    }
+
+    function renderShapes() {
+      shapeOptionsEl.replaceChildren(
+        ...SHAPES.map((shape) => {
+          const input = el('input', {
+            type: 'radio',
+            name: 'shape',
+            id: `shape-${shape.id}`,
+            value: shape.id,
+            checked: local.shape === shape.id,
+          });
+          input.addEventListener('change', () => {
+            local.shape = shape.id;
+            const validSlotIds = shape.slots.map((s) => s.id);
+            local.slots = Object.fromEntries(
+              Object.entries(local.slots).filter(([k]) => validSlotIds.includes(k))
+            );
+            renderShapes();
+            renderSlots();
+            scheduleWrite();
+            updateStartEnabled();
+          });
+          return el(
+            'label',
+            { class: `framing-radio-option${local.shape === shape.id ? ' is-selected' : ''}` },
+            input,
+            el(
+              'div',
+              { class: 'framing-radio-content' },
+              el('span', { class: 'framing-radio-label' }, shape.label),
+              shape.blurb ? el('span', { class: 'framing-radio-helper' }, shape.blurb) : null,
+              el('span', { class: 'framing-radio-template' }, shape.template),
+            ),
+          );
+        }),
+      );
+    }
+
+    function renderSlots() {
+      const shape = getShape(local.shape);
+      if (!shape) {
+        slotsFieldset.setAttribute('hidden', '');
+        slotsEl.replaceChildren();
+        return;
+      }
+      slotsFieldset.removeAttribute('hidden');
+      slotsEl.replaceChildren(
+        ...shape.slots.map((slot) => {
+          const input = el('input', {
+            type: 'text',
+            id: `slot-${slot.id}`,
+            name: slot.id,
+            value: local.slots[slot.id] || '',
+            maxlength: '120',
+            placeholder: slot.placeholder || '',
+          });
+          input.addEventListener('input', (e) => {
+            local.slots[slot.id] = e.target.value;
+            updatePreview();
+            scheduleWrite();
+            updateStartEnabled();
+          });
+          return el(
+            'div',
+            { class: 'framing-slot' },
+            el('label', { for: `slot-${slot.id}` }, slot.label),
+            el('div', { class: 'framing-slot-helper' }, slot.helper),
+            input,
+          );
+        }),
+      );
+      updatePreview();
+    }
+
+    function updatePreview() {
+      local.composedQuestion = composeQuestion(local.shape, local.slots);
+      if (previewEl) previewEl.textContent = local.composedQuestion || '(fill the slots above to compose your question)';
+    }
+
+    function updateStartEnabled() {
+      const shape = getShape(local.shape);
+      const allSlotsFilled = shape && shape.slots.every((s) => (local.slots[s.id] || '').trim().length > 0);
+      const ready = !!local.track && !!shape && allSlotsFilled && !!(local.goal || '').trim();
+      startBtn.disabled = !ready;
+    }
+
+    // Apply remote state into local + UI. Called on Firestore snapshots.
+    function applyRemote(remoteFraming) {
+      if (!remoteFraming) return;
+      // If completed, everyone follows the starter into the game.
+      if (remoteFraming.completed) {
+        gotoGame(roomCode, playerName);
+        return;
+      }
+      // While editing, don't clobber the user mid-keystroke. The flag is set
+      // briefly around our own write to avoid the round-trip looking like an
+      // external change.
+      if (suspendRemoteApply) return;
+
+      // Avoid the trivial case where the snapshot equals our local state.
+      const same = JSON.stringify(remoteFraming) === JSON.stringify({
+        track: local.track,
+        shape: local.shape,
+        slots: local.slots,
+        composedQuestion: local.composedQuestion,
+        goal: local.goal,
+        quickTest: local.quickTest,
+        completed: local.completed,
+      });
+      if (same) return;
+
+      local = { ...emptyFraming(), ...remoteFraming };
+      renderTracks();
+      renderShapes();
+      renderSlots();
+      goalEl.value = local.goal || '';
+      updatePreview();
+      updateStartEnabled();
+    }
+
+    // Debounced write: pushes the framing object into the room doc.
+    let writeTimer = null;
+    function scheduleWrite() {
+      if (!firebaseReady) return;
+      clearTimeout(writeTimer);
+      writeTimer = setTimeout(async () => {
+        suspendRemoteApply = true;
+        try {
+          await setDoc(
+            roomRef,
+            { roomId: roomCode, state: { framing: local } },
+            { merge: true }
+          );
+        } catch (err) {
+          console.error('[framing] Write failed:', err);
+        } finally {
+          // Allow a small breath before letting remote snapshots back in,
+          // so our own write doesn't immediately re-render.
+          setTimeout(() => { suspendRemoteApply = false; }, 200);
+        }
+      }, 500);
+    }
+
+    goalEl.addEventListener('input', () => {
+      local.goal = goalEl.value;
+      scheduleWrite();
+      updateStartEnabled();
+    });
+
+    startBtn.addEventListener('click', async () => {
+      local.completed = true;
+      setStatus('Starting…', 'ok');
+      if (firebaseReady) {
+        try {
+          await setDoc(
+            roomRef,
+            { roomId: roomCode, state: { framing: local } },
+            { merge: true }
+          );
+        } catch (err) {
+          console.error('[framing] Final write failed:', err);
+        }
+      }
+      try {
+        const storageKey = `futures:room:${roomCode}`;
+        const existing = JSON.parse(safeStorageGet(storageKey) || '{}');
+        safeStorageSet(storageKey, JSON.stringify({ ...existing, framing: local }));
+      } catch {}
+      gotoGame(roomCode, playerName);
+    });
+
+    skipBtn.addEventListener('click', () => {
+      gotoGame(roomCode, playerName);
+    });
+
+    // ── Initial seed: read any existing framing for this room ──────────────
+    if (firebaseReady) {
+      try {
+        const snap = await getDoc(roomRef);
+        const existingFraming = snap.exists() ? snap.data()?.state?.framing : null;
+
+        if (existingFraming && existingFraming.completed) {
+          // Someone already started — rejoin straight to the game.
+          gotoGame(roomCode, playerName);
+          return;
+        }
+
+        if (existingFraming) {
+          local = { ...emptyFraming(), ...existingFraming };
+        }
+      } catch (err) {
+        console.warn('[framing] Initial read failed:', err);
+      }
+
+      // Subscribe to live changes from collaborators.
+      onSnapshot(roomRef, (snap) => {
+        applyRemote(snap.exists() ? snap.data()?.state?.framing : null);
+      });
+    }
+    // No-Firebase path is handled by the storage fallback inside scheduleWrite.
+
+    // First paint
+    renderTracks();
+    renderShapes();
+    renderSlots();
+    goalEl.value = local.goal || '';
+    updatePreview();
+    updateStartEnabled();
+  }
+
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', bootFraming, { once: true });
+  } else {
+    bootFraming();
+  }
+</script>

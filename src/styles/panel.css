@@ -96,8 +96,9 @@
    ================================================ */
 
 .panel-header {
-  padding: 20px 18px 0;
-  padding-top: 22px; /* extra room for the accent stripe */
+  flex-shrink: 0; /* never let the card grid steal the header's chrome */
+  padding: 16px 18px 0;
+  padding-top: 18px; /* extra room for the accent stripe */
 }
 
 .panel-kicker {
@@ -130,11 +131,11 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .panel-mode-tab {
-  min-height: 36px;
+  min-height: 32px;
   border-radius: 999px;
   border: 1px solid rgba(214, 211, 209, 0.9);
   background: rgba(255,255,255,0.65);
@@ -165,13 +166,14 @@
 
 .panel-tabs {
   display: grid;
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .panel-tab {
-  min-height: 58px;
-  padding: 12px 14px 12px 18px;
-  border-radius: 16px;
+  min-height: 44px;
+  padding: 10px 10px 10px 22px;
+  border-radius: 12px;
   font-size: 0.7rem;
   font-weight: 700;
   text-align: left;
@@ -220,12 +222,9 @@
 }
 
 .panel-tab-copy {
-  margin-top: 3px;
-  font-size: 0.72rem;
-  line-height: 1.35;
-  color: var(--color-text-secondary);
-  text-transform: none;
-  letter-spacing: 0;
+  /* Hidden in the side-by-side 3-column layout — the title plus colour dot
+     and active border are enough; the descriptions surface as tooltips. */
+  display: none;
 }
 
 /* Tab colour dot indicators */
@@ -343,8 +342,10 @@
    ================================================ */
 
 .panel-cards {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0; /* required for overflow to work inside a flex column on Firefox */
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 14px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -353,7 +354,7 @@
 }
 
 /* Scrollbar */
-.panel-cards::-webkit-scrollbar { width: 4px; }
+.panel-cards::-webkit-scrollbar { width: 8px; }
 .panel-cards::-webkit-scrollbar-track { background: transparent; }
 .panel-cards::-webkit-scrollbar-thumb {
   background: var(--color-border);
@@ -1066,12 +1067,12 @@
    ================================================ */
 
 .panel-faci-prompt {
-  margin-top: 12px;
+  margin-top: 10px;
   background: rgba(59, 130, 246, 0.05);
   border: 1px solid rgba(59, 130, 246, 0.15);
   border-left: 3px solid var(--panel-phase-color, var(--color-blue));
   border-radius: 0 10px 10px 0;
-  padding: 10px 14px;
+  padding: 8px 12px;
   transition: border-color 0.4s ease, background 0.4s ease;
 }
 
@@ -1084,7 +1085,26 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--panel-phase-color, var(--color-blue));
-  margin-bottom: 5px;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+
+.panel-faci-label::-webkit-details-marker { display: none; }
+
+.panel-faci-label::before {
+  content: '▸';
+  display: inline-block;
+  font-size: 0.7rem;
+  transition: transform 0.18s ease;
+  color: var(--panel-phase-color, var(--color-blue));
+}
+
+.panel-faci-prompt[open] .panel-faci-label::before {
+  transform: rotate(90deg);
 }
 
 .panel-faci-text {
@@ -1092,6 +1112,7 @@
   color: var(--color-text-secondary);
   line-height: 1.45;
   font-style: italic;
+  margin-top: 6px;
 }
 
 /* ================================================
@@ -1508,5 +1529,517 @@
   }
   #card-panel.panel--story {
     --panel-width: 100vw;
+  }
+}
+
+/* ================================================
+   App modal — used for the custom-card creation
+   dialog. Matches the surface/shadow/radius vocab
+   the rest of the app uses, with a phase-coloured
+   accent stripe so the type tints through.
+   ================================================ */
+
+.app-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(28, 25, 23, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: appModalFadeIn 0.18s ease-out;
+}
+
+.app-modal[hidden] { display: none; }
+
+@keyframes appModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes appModalCardIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.app-modal-card {
+  --accent: var(--color-blue);
+  --accent-tint: rgba(59, 130, 246, 0.06);
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(28, 25, 23, 0.25);
+  overflow: hidden;
+  animation: appModalCardIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.app-modal-card[data-card-type="action"]    { --accent: var(--color-yellow);    --accent-tint: rgba(229, 161, 0, 0.07); }
+.app-modal-card[data-card-type="curveball"] { --accent: var(--color-red);       --accent-tint: rgba(220, 38, 38, 0.06); }
+.app-modal-card[data-card-type="ripple"]    { --accent: var(--color-green);     --accent-tint: rgba(5, 150, 105, 0.06); }
+.app-modal-card[data-card-type="beginning"] { --accent: var(--color-blue);      --accent-tint: rgba(59, 130, 246, 0.06); }
+.app-modal-card[data-card-type="end"]       { --accent: var(--color-blue-dark); --accent-tint: rgba(30, 64, 175, 0.06); }
+
+.app-modal-accent {
+  height: 4px;
+  background: var(--accent);
+}
+
+.app-modal-header {
+  padding: 18px 22px 6px;
+  background: var(--accent-tint);
+}
+
+.app-modal-chip {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: white;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  margin-bottom: 8px;
+}
+
+.app-modal-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--color-text);
+}
+
+.app-modal-copy {
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  margin: 0 0 14px;
+}
+
+.app-modal-body {
+  padding: 12px 22px 6px;
+  display: grid;
+  gap: 14px;
+}
+
+.app-modal-field {
+  display: grid;
+  gap: 6px;
+}
+
+.app-modal-field-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.app-modal-field-optional {
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.app-modal-field input,
+.app-modal-field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: var(--color-text);
+  background: white;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.app-modal-field input:focus,
+.app-modal-field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.app-modal-field input::placeholder,
+.app-modal-field textarea::placeholder {
+  color: rgba(28, 25, 23, 0.4);
+  font-style: italic;
+}
+
+.app-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 14px 22px 18px;
+}
+
+.app-modal-btn {
+  appearance: none;
+  border: 1.5px solid transparent;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.86rem;
+  padding: 9px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.app-modal-btn--ghost {
+  background: transparent;
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.app-modal-btn--ghost:hover {
+  background: rgba(0,0,0,0.04);
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+.app-modal-btn--primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.app-modal-btn--primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(0.96);
+}
+
+/* ================================================
+   PRINT VIEW
+   Hidden onscreen — swapped in via @media print so the
+   browser's Save-as-PDF produces a clean session summary.
+   ================================================ */
+
+.print-view {
+  display: none;
+}
+
+@media print {
+  /* Page setup */
+  @page {
+    size: A4;
+    margin: 18mm 16mm 18mm 16mm;
+  }
+
+  /* Hide every screen surface */
+  body > *,
+  body * {
+    visibility: hidden;
+  }
+
+  /* Show the print view only */
+  .print-view,
+  .print-view * {
+    visibility: visible;
+  }
+
+  .print-view {
+    display: block;
+    position: absolute;
+    inset: 0;
+    background: white;
+    color: #1c1917;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.55;
+    padding: 0;
+  }
+
+  .print-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 10pt;
+    border-bottom: 1.5pt solid #1c1917;
+    margin-bottom: 14pt;
+  }
+
+  .print-brand {
+    display: flex;
+    align-items: center;
+    gap: 8pt;
+  }
+
+  .print-brand-diamond {
+    width: 10pt;
+    height: 10pt;
+    background: #3b82f6;
+    transform: rotate(45deg);
+    display: inline-block;
+  }
+
+  .print-brand-name {
+    font-family: 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 14pt;
+    letter-spacing: 0.06em;
+  }
+
+  .print-brand-tag {
+    font-size: 8.5pt;
+    color: #57534e;
+    margin-left: 6pt;
+    font-style: italic;
+  }
+
+  .print-meta {
+    text-align: right;
+    font-size: 9pt;
+    color: #57534e;
+  }
+
+  .print-meta strong {
+    color: #1c1917;
+    font-weight: 700;
+    margin-right: 4pt;
+  }
+
+  .print-title {
+    font-size: 22pt;
+    font-weight: 800;
+    margin: 0 0 4pt;
+    letter-spacing: -0.01em;
+  }
+
+  .print-section {
+    margin: 14pt 0 10pt;
+    page-break-inside: avoid;
+  }
+
+  /* Reflection should still be allowed to break — it's the meatiest section */
+  .print-section--reflection {
+    page-break-inside: auto;
+  }
+
+  .print-section h2 {
+    font-size: 12pt;
+    font-weight: 700;
+    margin: 0 0 6pt;
+    padding-bottom: 3pt;
+    border-bottom: 0.5pt solid #d6d3d1;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #1c1917;
+  }
+
+  .print-section-note {
+    font-size: 9pt;
+    color: #78716c;
+    font-style: italic;
+    margin: 0 0 6pt;
+  }
+
+  .print-label {
+    font-size: 8pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #78716c;
+    margin-bottom: 2pt;
+  }
+
+  .print-paragraph {
+    margin: 0 0 8pt;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+
+  .print-framing {
+    display: grid;
+    gap: 8pt;
+    background: #fafaf9;
+    padding: 8pt 10pt;
+    border-left: 2pt solid #3b82f6;
+  }
+
+  .print-framing-block {
+    margin: 0;
+  }
+
+  .print-participants {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4pt 10pt;
+  }
+
+  .print-participants li {
+    font-size: 10pt;
+  }
+
+  .print-participants .role-host {
+    font-weight: 700;
+  }
+
+  .print-participants .role-host::after {
+    content: ' (host)';
+    font-weight: 400;
+    color: #78716c;
+    font-style: italic;
+  }
+
+  .print-timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: timeline-item;
+  }
+
+  .print-timeline li {
+    page-break-inside: avoid;
+    margin-bottom: 8pt;
+    padding: 6pt 10pt;
+    border-left: 2pt solid #d6d3d1;
+    position: relative;
+  }
+
+  .print-timeline li.print-timeline--curveball {
+    border-left-color: #dc2626;
+    background: rgba(220, 38, 38, 0.04);
+  }
+
+  .print-timeline li.print-timeline--beginning,
+  .print-timeline li.print-timeline--end {
+    border-left-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.04);
+  }
+
+  .print-timeline li.print-timeline--action {
+    border-left-color: #e5a100;
+    background: rgba(229, 161, 0, 0.04);
+  }
+
+  .print-card-tag {
+    display: inline-block;
+    font-size: 8pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #57534e;
+    margin-right: 6pt;
+  }
+
+  .print-card-title {
+    font-weight: 700;
+    font-size: 11pt;
+    margin: 0;
+  }
+
+  .print-card-desc {
+    font-size: 10pt;
+    color: #44403c;
+    margin: 2pt 0;
+  }
+
+  .print-card-note {
+    font-size: 9.5pt;
+    color: #292524;
+    margin: 4pt 0 0;
+    padding: 4pt 6pt;
+    background: rgba(28, 25, 23, 0.04);
+    border-radius: 2pt;
+  }
+
+  .print-card-note::before {
+    content: 'Note — ';
+    font-weight: 700;
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #78716c;
+  }
+
+  .print-card-meta {
+    font-size: 8.5pt;
+    color: #78716c;
+    font-style: italic;
+    margin-top: 2pt;
+  }
+
+  .print-ripples,
+  .print-connections,
+  .print-notes {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .print-ripples li,
+  .print-connections li {
+    page-break-inside: avoid;
+    margin-bottom: 6pt;
+    padding: 5pt 8pt;
+    border-left: 2pt solid #059669;
+    background: rgba(5, 150, 105, 0.04);
+  }
+
+  .print-connections li {
+    border-left-color: #6366f1;
+    background: rgba(99, 102, 241, 0.04);
+  }
+
+  .print-notes li {
+    page-break-inside: avoid;
+    margin-bottom: 8pt;
+  }
+
+  .print-note-phase {
+    font-size: 9pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #57534e;
+    margin-bottom: 2pt;
+  }
+
+  .print-note-text {
+    font-size: 10.5pt;
+    margin: 0;
+    padding: 4pt 8pt;
+    border-left: 1.5pt solid #d6d3d1;
+  }
+
+  .print-reflection-callout {
+    font-size: 13pt;
+    font-weight: 600;
+    line-height: 1.5;
+    padding: 10pt 12pt;
+    background: rgba(59, 130, 246, 0.06);
+    border-left: 3pt solid #3b82f6;
+    margin: 0 0 10pt;
+    font-style: italic;
+  }
+
+  .print-reflection-block {
+    margin-bottom: 8pt;
+  }
+
+  .print-footer {
+    margin-top: 18pt;
+    padding-top: 6pt;
+    border-top: 0.5pt solid #d6d3d1;
+    display: flex;
+    justify-content: space-between;
+    font-size: 8pt;
+    color: #78716c;
+  }
+
+  .print-empty {
+    color: #a8a29e;
+    font-style: italic;
+    font-size: 9pt;
   }
 }

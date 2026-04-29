@@ -63,12 +63,15 @@ export async function initSync(roomCode) {
 
   return {
     uid: user.uid,
+    sessionId: mySessionId,
     initialState,
 
     writeState(snapshot) {
       clearTimeout(writeTimer);
       writeTimer = setTimeout(() => {
-        const { participants, activeParticipantId, lastPanelType, ...sharedState } = snapshot;
+        // Only `lastPanelType` is excluded from sync — participants are now part
+        // of shared state so every tab sees who's actually in the room.
+        const { lastPanelType, ...sharedState } = snapshot;
         setDoc(
           roomRef,
           {

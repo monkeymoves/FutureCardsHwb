@@ -35,18 +35,22 @@ export function createTimeline(surface) {
    * Cards are arranged left-to-right: Begin → Actions → End
    */
   function calculateLayout(cards) {
-    const sorted = [];
-
-    // Find beginning and end cards
+    // Caller (engine.getTimelineCards) is responsible for ordering — we just
+    // honour the iteration order so manual reorders / inline curveball
+    // insertions are respected. We still pin the begin card to position 0 and
+    // the end card to last in case the input is mis-ordered.
     const beginCard = cards.find(c => c.type === 'beginning');
     const endCard = cards.find(c => c.type === 'end');
-    const actionCards = cards.filter(c => c.type === 'action');
+    const middleCards = cards.filter(c => c !== beginCard && c !== endCard);
 
+    const sorted = [];
     if (beginCard) sorted.push(beginCard);
-    sorted.push(...actionCards);
+    sorted.push(...middleCards);
     if (endCard) sorted.push(endCard);
 
-    // Assign positions
+    // Assign even left-to-right positions. Both action and curveball cards
+    // sit on the same y line — that's what makes the curveball "an event in
+    // the timeline" rather than a side-pressure.
     const positions = {};
     sorted.forEach((card, i) => {
       positions[card.cardId] = {
@@ -192,14 +196,32 @@ export function createTimeline(surface) {
     }
 
     const byId = Object.fromEntries(cards.map((card) => [card.cardId, card]));
+    // Citizens of the main timeline (drawn with the dashed forward arrows).
+    // Inline curveballs (lane === 'timeline') participate in the sequential
+    // arrow chain — that's how we get "Action → CURVEBALL → Action" reading
+    // as a single narrative.
     const timelineCards = cards
-      .filter((card) => ['beginning', 'end'].includes(card.type) || (card.type === 'action' && card.lane !== 'response'))
+      .filter((card) =>
+        ['beginning', 'end'].includes(card.type)
+        || (card.type === 'action' && card.lane !== 'response')
+        || (card.type === 'curveball' && card.lane === 'timeline')
+      )
       .sort((a, b) => a.position.x - b.position.x);
 
     drawTimelineConnections(timelineCards);
 
+    // Cards that float ABOVE the pathway as side-branches: ripples always,
+    // legacy floating curveballs (no lane), and response-lane actions. We
+    // skip inline curveballs here — they're already arrowed in the timeline
+    // chain above, drawing a second attachment line would double up.
     cards
-      .filter((card) => (['curveball', 'ripple'].includes(card.type) || (card.type === 'action' && card.lane === 'response')) && card.linkedTo)
+      .filter((card) => {
+        if (!card.linkedTo) return false;
+        if (card.type === 'ripple') return true;
+        if (card.type === 'curveball' && card.lane !== 'timeline') return true;
+        if (card.type === 'action' && card.lane === 'response') return true;
+        return false;
+      })
       .forEach((card) => drawAttachmentConnection(byId[card.linkedTo], card));
 
     // Draw user-defined connections (any card → any card, including loops)

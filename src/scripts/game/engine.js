@@ -14,6 +14,7 @@ import { createTimeline } from './timeline.js';
 import { createPhaseManager, PHASES } from './phases.js';
 import { ACTION_CARDS, CURVEBALL_CARDS, RIPPLE_CARDS } from '../data/card-library.js';
 import { generateCardId } from '../utils/id.js';
+import { emptyFraming } from '../framing/templates.js';
 
 const PANEL_TYPES = ['action', 'curveball', 'ripple'];
 const CARD_LIBRARY = {
@@ -41,7 +42,7 @@ const CARD_NOTE_PROMPTS = {
 // Discussion questions the facilitator reads aloud at the start of each phase.
 // Separate from PHASE_NOTE_PROMPTS (those are for the written notebook).
 const PHASE_FACILITATION_PROMPTS = {
-  setup:      'What is the real challenge you face right now? And what would a genuinely successful outcome look like in 5–10 years?',
+  setup:      'Read your framing aloud, then place the blue start card for today\'s situation and the end card for the future you agreed.',
   planning:   'If you had full control, what are the most important moves to make? Challenge each other — is every step really necessary?',
   curveball:  'What could go wrong? What disruptions or shocks could completely derail this plan?',
   ripple:     'If all this happened, what would change across the wider system? Who else would be affected, and how?',
@@ -63,34 +64,51 @@ function truncate(text, limit = 28) {
   return text.length > limit ? `${text.slice(0, limit - 1)}...` : text;
 }
 
-function createParticipant(name, role = 'player') {
+// Stale-participant pruning: anyone who hasn't sent a heartbeat in this long
+// is dropped from the room's participant list when the next tab boots. Keeps
+// abandoned tabs from cluttering the rail forever.
+const PARTICIPANT_STALE_MS = 10 * 60 * 1000; // 10 minutes
+// Anyone who hasn't beaten in this long is rendered as "idle" rather than
+// online. Should be > heartbeat interval (20s) to avoid false-idle flicker.
+export const PARTICIPANT_ONLINE_WINDOW_MS = 45 * 1000;
+export const HEARTBEAT_INTERVAL_MS = 20 * 1000;
+
+function createParticipant({ name, role = 'player', sessionId = null } = {}) {
+  const now = Date.now();
   return {
     id: generateCardId(),
     name: name || 'Participant',
     role,
+    sessionId,
+    joinedAt: now,
+    lastSeenAt: now,
   };
 }
 
-function normaliseParticipants(input = [], playerName = 'Planner') {
-  if (input.length > 0) {
-    return input.map((participant, index) => ({
+function normaliseParticipants(input = []) {
+  // Migrate older shape (no sessionId / lastSeenAt) and prune stale entries.
+  const now = Date.now();
+  return input
+    .map((participant, index) => ({
       id: participant.id || generateCardId(),
       name: participant.name || `Participant ${index + 1}`,
       role: participant.role === 'facilitator'
         ? 'host'
         : (participant.role || (index === 0 ? 'host' : 'player')),
-    }));
-  }
-
-  return [
-    createParticipant(playerName || 'Planner', 'host'),
-    createParticipant('Player 2'),
-    createParticipant('Player 3'),
-  ];
+      sessionId: participant.sessionId || null,
+      joinedAt: participant.joinedAt || now,
+      lastSeenAt: participant.lastSeenAt || now,
+    }))
+    .filter((p) => now - p.lastSeenAt < PARTICIPANT_STALE_MS);
 }
 
 export function initGame(roomCode, options = {}) {
-  const { initialState = null, onStateChange = () => {}, playerName = 'Planner' } = options;
+  const {
+    initialState = null,
+    onStateChange = () => {},
+    playerName = 'Planner',
+    sessionId = null,
+  } = options;
 
   const viewport = document.getElementById('board-viewport');
   const surface = document.getElementById('board-surface');
@@ -118,8 +136,6 @@ export function initGame(roomCode, options = {}) {
   const panelInspectorBackBtn = document.getElementById('panel-inspector-back-btn');
   const panelInspectorCrumb = document.getElementById('panel-inspector-crumb');
   const participantRail = document.getElementById('participant-rail');
-  const addParticipantBtn = document.getElementById('add-participant-btn');
-  const playerAvatar = document.getElementById('player-avatar');
   const panelFaciPrompt = document.getElementById('panel-faci-prompt');
   const panelFaciText = document.getElementById('panel-faci-text');
 
@@ -132,20 +148,65 @@ export function initGame(roomCode, options = {}) {
   let connectionSourceId = null;
   let isInitializing = true; // suppresses phase announcement on first load
 
-  const participants = normaliseParticipants(initialState?.participants, playerName);
-  const initialActiveParticipantId = initialState?.activeParticipantId && participants.some((participant) => participant.id === initialState.activeParticipantId)
+  const seededParticipants = normaliseParticipants(initialState?.participants);
+
+  // Find this tab's participant (by sessionId) or seat them now.
+  let myParticipant = sessionId
+    ? seededParticipants.find((p) => p.sessionId === sessionId)
+    : null;
+
+  if (myParticipant) {
+    // Returning tab: refresh name in case it changed in the URL, and bump lastSeen.
+    myParticipant.name = playerName || myParticipant.name;
+    myParticipant.lastSeenAt = Date.now();
+  } else {
+    // Reclaim an idle slot with the same name before creating a fresh one.
+    // This is the "Alice closes her tab and reopens" case — without this we
+    // pile up duplicate "Alice (idle)" rows in everyone's rail every reconnect.
+    // Reclaim only if the slot is genuinely stale (no recent heartbeat),
+    // otherwise we'd hijack a still-online same-named teammate.
+    const reclaimable = playerName
+      ? seededParticipants.find((p) =>
+          p.name === playerName
+          && p.sessionId !== sessionId
+          && (Date.now() - (p.lastSeenAt || 0)) > PARTICIPANT_ONLINE_WINDOW_MS
+        )
+      : null;
+
+    if (reclaimable) {
+      reclaimable.sessionId = sessionId;
+      reclaimable.lastSeenAt = Date.now();
+      myParticipant = reclaimable;
+    } else {
+      const hasHost = seededParticipants.some((p) => p.role === 'host');
+      myParticipant = createParticipant({
+        name: playerName,
+        role: hasHost ? 'player' : 'host',
+        sessionId,
+      });
+      seededParticipants.push(myParticipant);
+    }
+  }
+
+  const participants = seededParticipants;
+  const myParticipantId = myParticipant.id;
+
+  const initialActiveParticipantId = initialState?.activeParticipantId
+    && participants.some((participant) => participant.id === initialState.activeParticipantId)
     ? initialState.activeParticipantId
-    : participants[0]?.id || null;
+    : myParticipantId;
 
   const gameState = {
     roomCode,
     cards: initialState?.cards ? cloneCards(initialState.cards) : {},
+    customCards: initialState?.customCards ? { ...initialState.customCards } : {},
     connections: initialState?.connections || [],
     manualConnections: initialState?.manualConnections ? [...initialState.manualConnections] : [],
     phase: initialState?.phase || 'setup',
     phaseNotes: normalisePhaseNotes(initialState?.phaseNotes),
     participants,
     activeParticipantId: initialActiveParticipantId,
+    framing: { ...emptyFraming(), ...(initialState?.framing || {}) },
   };
 
   const board = createBoard(viewport, surface);
@@ -214,17 +275,10 @@ export function initGame(roomCode, options = {}) {
     }
   });
 
-  addParticipantBtn?.addEventListener('click', () => {
-    const name = prompt('Add participant name:');
-    if (!name?.trim()) return;
-
-    const participant = createParticipant(name.trim());
-    gameState.participants.push(participant);
-    setActiveParticipant(participant.id);
-    emitStateChange();
-  });
-
   panelInspectorBackBtn?.addEventListener('click', closeCardEditor);
+
+  // Edit framing — anyone in the room can refine the question/goal mid-game.
+  document.getElementById('framing-edit-btn')?.addEventListener('click', openFramingEditModal);
   window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       if (isConnectMode) {
@@ -268,31 +322,29 @@ export function initGame(roomCode, options = {}) {
     renderCardEditor();
   }
 
+  function isParticipantOnline(participant) {
+    return participant?.lastSeenAt
+      && (Date.now() - participant.lastSeenAt) < PARTICIPANT_ONLINE_WINDOW_MS;
+  }
+
   function renderParticipants() {
-    const activeParticipant = getActiveParticipant();
-
-    if (playerAvatar && activeParticipant) {
-      const initials = activeParticipant.name
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0])
-        .join('')
-        .toUpperCase();
-      playerAvatar.textContent = initials || 'P';
-      playerAvatar.setAttribute('aria-label', activeParticipant.name);
-      playerAvatar.dataset.role = activeParticipant.role;
-    }
-
     if (!participantRail) return;
 
     while (participantRail.firstChild) {
       participantRail.removeChild(participantRail.firstChild);
     }
 
+    // Online participants first, then idle, preserving join order within each group.
+    const sorted = [...gameState.participants].sort((a, b) => {
+      const aOnline = isParticipantOnline(a) ? 0 : 1;
+      const bOnline = isParticipantOnline(b) ? 0 : 1;
+      if (aOnline !== bOnline) return aOnline - bOnline;
+      return (a.joinedAt || 0) - (b.joinedAt || 0);
+    });
+
     const MAX_VISIBLE = 7;
-    const visible = gameState.participants.slice(0, MAX_VISIBLE);
-    const overflow = gameState.participants.length - MAX_VISIBLE;
+    const visible = sorted.slice(0, MAX_VISIBLE);
+    const overflow = sorted.length - MAX_VISIBLE;
 
     visible.forEach((participant) => {
       const initials = participant.name
@@ -303,18 +355,49 @@ export function initGame(roomCode, options = {}) {
         .join('')
         .toUpperCase() || 'P';
 
-      const avatar = document.createElement('button');
-      avatar.type = 'button';
-      avatar.className = 'participant-avatar';
-      avatar.textContent = initials;
-      avatar.title = participant.role === 'host' ? `${participant.name} (Host)` : participant.name;
-      avatar.dataset.role = participant.role;
-      avatar.classList.toggle('is-active', participant.id === gameState.activeParticipantId);
-      avatar.addEventListener('click', () => {
+      const isMe = participant.id === myParticipantId;
+      const isHost = participant.role === 'host';
+      const online = isParticipantOnline(participant);
+
+      const wrapper = document.createElement('button');
+      wrapper.type = 'button';
+      wrapper.className = 'participant-avatar';
+      wrapper.dataset.role = participant.role;
+      wrapper.classList.toggle('is-host', isHost);
+      wrapper.classList.toggle('is-me', isMe);
+      wrapper.classList.toggle('is-online', online);
+      wrapper.classList.toggle('is-idle', !online);
+      wrapper.classList.toggle('is-active', participant.id === gameState.activeParticipantId);
+
+      const initialsSpan = document.createElement('span');
+      initialsSpan.className = 'participant-avatar-initials';
+      initialsSpan.textContent = initials;
+      wrapper.appendChild(initialsSpan);
+
+      const dot = document.createElement('span');
+      dot.className = 'participant-avatar-dot';
+      dot.setAttribute('aria-hidden', 'true');
+      wrapper.appendChild(dot);
+
+      if (isHost) {
+        const crown = document.createElement('span');
+        crown.className = 'participant-avatar-crown';
+        crown.setAttribute('aria-hidden', 'true');
+        crown.textContent = '★';
+        wrapper.appendChild(crown);
+      }
+
+      const tooltipBits = [participant.name];
+      if (isMe) tooltipBits.push('(You)');
+      if (isHost) tooltipBits.push('— Host');
+      tooltipBits.push(online ? '· online' : '· idle');
+      wrapper.title = tooltipBits.join(' ');
+
+      wrapper.addEventListener('click', () => {
         setActiveParticipant(participant.id);
         emitStateChange();
       });
-      participantRail.appendChild(avatar);
+      participantRail.appendChild(wrapper);
     });
 
     if (overflow > 0) {
@@ -326,14 +409,47 @@ export function initGame(roomCode, options = {}) {
     }
   }
 
+  function renderFramingStrip() {
+    const strip = document.getElementById('framing-strip');
+    const questionEl = document.getElementById('framing-strip-question');
+    const goalEl = document.getElementById('framing-strip-goal');
+    const trackEl = document.getElementById('framing-strip-track');
+    const trackRow = document.getElementById('framing-strip-track-row');
+    if (!strip) return;
+
+    const f = gameState.framing || {};
+    if (!f.completed && !f.composedQuestion) {
+      strip.setAttribute('hidden', '');
+      return;
+    }
+
+    strip.removeAttribute('hidden');
+    if (questionEl) questionEl.textContent = f.composedQuestion || '(no question yet)';
+    if (goalEl) goalEl.textContent = f.goal || '(no goal yet)';
+
+    if (f.track && trackEl && trackRow) {
+      trackEl.textContent = f.track === 'practical' ? 'Practical goal' : 'Substantial goal';
+      trackRow.style.display = '';
+    } else if (trackRow) {
+      trackRow.style.display = 'none';
+    }
+  }
+
   function getPhasePanelText(phaseId) {
+    const hasFraming = gameState.framing?.completed && gameState.framing?.composedQuestion;
     switch (phaseId) {
       case 'setup':
-        return {
-          status: 'Current Move',
-          title: 'Frame the Future',
-          copy: 'Click the blue start and end cards to define the challenge and the future you want to reach.',
-        };
+        return hasFraming
+          ? {
+              status: 'Anchor your framing',
+              title: 'Anchor your framing',
+              copy: 'Drop the blue start card for today\'s situation, and the end card for the future you agreed.',
+            }
+          : {
+              status: 'Current Move',
+              title: 'Frame the Future',
+              copy: 'Click the blue start and end cards to define the challenge and the future you want to reach.',
+            };
       case 'planning':
         return {
           status: 'Current Move',
@@ -344,7 +460,7 @@ export function initGame(roomCode, options = {}) {
         return {
           status: 'Current Move',
           title: 'Stress Test the Pathway',
-          copy: 'Play curveballs to disrupt the route, or add response actions to show how the group adapts.',
+          copy: 'Drop a curveball to disrupt the route — it lands on the timeline after the action it pressures. Any actions you add after that play as the team\'s response.',
         };
       case 'ripple':
         return {
@@ -411,11 +527,11 @@ export function initGame(roomCode, options = {}) {
     const phaseId = phases.getCurrentPhase().id;
 
     if (phaseId === 'curveball' && focusCard) {
-      return `Selected focus: ${focusCard.title}. Curveballs pressure that step, while action cards become response moves.`;
+      return `Selected focus: ${focusCard.title}. New curveballs land on the timeline right after this card. Action cards you add will follow on as the team's response.`;
     }
 
     if (phaseId === 'ripple' && focusCard) {
-      return `Selected focus: ${focusCard.title}. Use ripples to show knock-on effects, or add response actions to adapt the pathway.`;
+      return `Selected focus: ${focusCard.title}. Use ripples to map knock-on effects radiating from this card. Add new actions to extend the pathway.`;
     }
 
     return defaultCopy;
@@ -561,6 +677,283 @@ export function initGame(roomCode, options = {}) {
     }
   }
 
+  /**
+   * Populate the hidden #print-view section with the current session summary
+   * and trigger the browser's print dialog. The user picks "Save as PDF" in
+   * their browser to produce a formatted PDF — works in Chrome, Safari, Edge,
+   * and Firefox without any extra library.
+   *
+   * Why print() not jsPDF: we already have rich CSS for typography and colour;
+   * @media print swaps the page to the print view and hands rendering to the
+   * browser. Also yields a literally printable result for hard-copy debriefs.
+   */
+  function exportSessionAsPDF(summary) {
+    const view = document.getElementById('print-view');
+    if (!view) {
+      console.warn('[export] print-view section missing — falling back to window.print()');
+      window.print();
+      return;
+    }
+
+    const setText = (id, text) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    };
+    const setEmpty = (el, msg = '— not captured —') => {
+      el.replaceChildren();
+      const p = document.createElement('p');
+      p.className = 'print-empty';
+      p.textContent = msg;
+      el.appendChild(p);
+    };
+
+    // Header / meta
+    setText('print-room', roomCode);
+    setText('print-date', new Date(summary.generatedAt).toLocaleString(undefined, {
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    }));
+    setText('print-title', summary.framing.question || 'Session summary');
+
+    // Framing
+    setText('print-framing-question', summary.framing.question || '— no question captured —');
+    setText('print-framing-goal', summary.framing.goal || '— no goal captured —');
+    const trackBlock = document.getElementById('print-framing-track-block');
+    if (summary.framing.track) {
+      setText('print-framing-track', summary.framing.track);
+      if (trackBlock) trackBlock.style.display = '';
+    } else if (trackBlock) {
+      trackBlock.style.display = 'none';
+    }
+
+    // Participants
+    const participantsEl = document.getElementById('print-participants');
+    if (participantsEl) {
+      if (summary.participants.length === 0) {
+        setEmpty(participantsEl, '— no participants recorded —');
+      } else {
+        participantsEl.replaceChildren(
+          ...summary.participants.map((p) => {
+            const li = document.createElement('li');
+            li.textContent = p.name || 'Unnamed';
+            if (p.role === 'host') li.classList.add('role-host');
+            return li;
+          })
+        );
+      }
+    }
+
+    // Timeline (begin → cards → end). Each item: title + desc + note + owner.
+    // Curveballs include their "pressures X" relationship inline.
+    const timelineEl = document.getElementById('print-timeline');
+    if (timelineEl) {
+      if (summary.timeline.length === 0) {
+        setEmpty(timelineEl, '— no cards on the board —');
+      } else {
+        timelineEl.replaceChildren(
+          ...summary.timeline.map((card) => {
+            const li = document.createElement('li');
+            li.className = `print-timeline--${card.type}`;
+
+            const titleRow = document.createElement('p');
+            titleRow.className = 'print-card-title';
+            const tag = document.createElement('span');
+            tag.className = 'print-card-tag';
+            tag.textContent = card.type === 'beginning' ? 'Begin'
+              : card.type === 'end' ? 'End goal'
+              : card.type === 'curveball' ? 'Curveball'
+              : 'Action';
+            titleRow.appendChild(tag);
+            titleRow.appendChild(document.createTextNode(card.title || '(untitled)'));
+            li.appendChild(titleRow);
+
+            if (card.description) {
+              const desc = document.createElement('p');
+              desc.className = 'print-card-desc';
+              desc.textContent = card.description;
+              li.appendChild(desc);
+            }
+
+            if (card.type === 'curveball' && card.linkedToTitle) {
+              const meta = document.createElement('p');
+              meta.className = 'print-card-meta';
+              meta.textContent = `Pressures: ${card.linkedToTitle}`;
+              li.appendChild(meta);
+            }
+
+            if (card.note) {
+              const note = document.createElement('p');
+              note.className = 'print-card-note';
+              note.textContent = card.note;
+              li.appendChild(note);
+            }
+
+            if (card.owner) {
+              const owner = document.createElement('p');
+              owner.className = 'print-card-meta';
+              owner.textContent = `Captured by ${card.owner}`;
+              li.appendChild(owner);
+            }
+
+            return li;
+          })
+        );
+      }
+    }
+
+    // Ripples
+    const ripplesEl = document.getElementById('print-ripples');
+    const ripplesSection = document.getElementById('print-ripples-section');
+    if (ripplesEl && ripplesSection) {
+      if (summary.ripples.length === 0) {
+        ripplesSection.style.display = 'none';
+      } else {
+        ripplesSection.style.display = '';
+        ripplesEl.replaceChildren(
+          ...summary.ripples.map((r) => {
+            const li = document.createElement('li');
+            const title = document.createElement('p');
+            title.className = 'print-card-title';
+            title.textContent = r.title;
+            li.appendChild(title);
+            if (r.growsFromTitle) {
+              const meta = document.createElement('p');
+              meta.className = 'print-card-meta';
+              meta.textContent = `Grows from: ${r.growsFromTitle}`;
+              li.appendChild(meta);
+            }
+            if (r.description) {
+              const desc = document.createElement('p');
+              desc.className = 'print-card-desc';
+              desc.textContent = r.description;
+              li.appendChild(desc);
+            }
+            if (r.note) {
+              const note = document.createElement('p');
+              note.className = 'print-card-note';
+              note.textContent = r.note;
+              li.appendChild(note);
+            }
+            if (r.owner) {
+              const owner = document.createElement('p');
+              owner.className = 'print-card-meta';
+              owner.textContent = `Captured by ${r.owner}`;
+              li.appendChild(owner);
+            }
+            return li;
+          })
+        );
+      }
+    }
+
+    // Drawn connections
+    const connEl = document.getElementById('print-connections');
+    const connSection = document.getElementById('print-connections-section');
+    if (connEl && connSection) {
+      if (summary.manualConnections.length === 0) {
+        connSection.style.display = 'none';
+      } else {
+        connSection.style.display = '';
+        connEl.replaceChildren(
+          ...summary.manualConnections.map((c) => {
+            const li = document.createElement('li');
+            li.textContent = `${c.from} → ${c.to}`;
+            return li;
+          })
+        );
+      }
+    }
+
+    // Phase notes (filtering reflection out — it gets the headline treatment below)
+    const notesEl = document.getElementById('print-notes');
+    const notesSection = document.getElementById('print-notes-section');
+    const phaseNotesNonReflection = summary.notes.filter((n) => n.id !== 'reflection');
+    if (notesEl && notesSection) {
+      if (phaseNotesNonReflection.length === 0) {
+        notesSection.style.display = 'none';
+      } else {
+        notesSection.style.display = '';
+        notesEl.replaceChildren(
+          ...phaseNotesNonReflection.map((n) => {
+            const li = document.createElement('li');
+            const phaseLbl = document.createElement('div');
+            phaseLbl.className = 'print-note-phase';
+            phaseLbl.textContent = n.label;
+            const text = document.createElement('p');
+            text.className = 'print-note-text';
+            text.textContent = n.note;
+            li.appendChild(phaseLbl);
+            li.appendChild(text);
+            return li;
+          })
+        );
+      }
+    }
+
+    // Reflection — featured. The reflection note is the headline takeaway,
+    // followed by main tension, key ripple, immediate next steps if present.
+    const reflectionContent = document.getElementById('print-reflection-content');
+    const reflectionSection = document.getElementById('print-reflection-section');
+    if (reflectionContent && reflectionSection) {
+      const reflectionNote = summary.notes.find((n) => n.id === 'reflection')?.note;
+      const conc = summary.conclusion;
+      const hasAny = reflectionNote || conc.mainTension || conc.rippleInsight || conc.nextMove
+        || summary.nextSteps.length > 0;
+
+      if (!hasAny) {
+        reflectionSection.style.display = 'none';
+      } else {
+        reflectionSection.style.display = '';
+        reflectionContent.replaceChildren();
+
+        if (reflectionNote) {
+          const callout = document.createElement('p');
+          callout.className = 'print-reflection-callout';
+          callout.textContent = reflectionNote;
+          reflectionContent.appendChild(callout);
+        }
+
+        const reflectionBlock = (label, text) => {
+          if (!text) return;
+          const wrap = document.createElement('div');
+          wrap.className = 'print-reflection-block';
+          const lbl = document.createElement('div');
+          lbl.className = 'print-label';
+          lbl.textContent = label;
+          const p = document.createElement('p');
+          p.className = 'print-paragraph';
+          p.textContent = text;
+          wrap.appendChild(lbl);
+          wrap.appendChild(p);
+          reflectionContent.appendChild(wrap);
+        };
+        reflectionBlock('Main tension', conc.mainTension);
+        reflectionBlock('Key ripple insight', conc.rippleInsight);
+
+        if (summary.nextSteps.length > 0) {
+          const wrap = document.createElement('div');
+          wrap.className = 'print-reflection-block';
+          const lbl = document.createElement('div');
+          lbl.className = 'print-label';
+          lbl.textContent = 'Immediate next steps';
+          const ul = document.createElement('ul');
+          summary.nextSteps.forEach((step) => {
+            const li = document.createElement('li');
+            li.textContent = step;
+            ul.appendChild(li);
+          });
+          wrap.appendChild(lbl);
+          wrap.appendChild(ul);
+          reflectionContent.appendChild(wrap);
+        }
+      }
+    }
+
+    // Trigger the browser print dialog. Modern browsers default the
+    // destination to "Save as PDF" or expose it as an obvious option.
+    window.print();
+  }
+
   function buildStorySummary() {
     const timelineCards = getTimelineCards();
     const branchActions = Object.values(gameState.cards).filter((card) => card.type === 'action' && card.lane === 'response');
@@ -577,21 +970,74 @@ export function initGame(roomCode, options = {}) {
       ...branchActions.slice(0, 3).map((card) => card.title),
     ].filter(Boolean);
 
+    // Resolve owner names for cards so the export reads who contributed what.
+    const participantById = Object.fromEntries(
+      (gameState.participants || []).map((p) => [p.id, p])
+    );
+    const ownerName = (id) => participantById[id]?.name || null;
+
+    // Manual connections live as { from, to } pairs — resolve to readable
+    // titles so the PDF can show "X → Y (drawn link)".
+    const manualConnections = (gameState.manualConnections || [])
+      .map(({ from, to }) => ({
+        from: gameState.cards[from]?.title || null,
+        to: gameState.cards[to]?.title || null,
+      }))
+      .filter((c) => c.from && c.to);
+
+    const f = gameState.framing || {};
+
     return {
       title: `${roomCode} futures session`,
+      generatedAt: new Date().toISOString(),
       phase: phases.getCurrentPhase().label,
+      // Framing — the *why* the session existed. Previously absent from export.
+      framing: {
+        question: f.composedQuestion || '',
+        goal: f.goal || '',
+        track: f.track === 'practical' ? 'Practical goal' : (f.track === 'substantial' ? 'Substantial goal' : ''),
+      },
+      // Participants — who took part, with the host marked.
+      participants: (gameState.participants || []).map((p) => ({
+        name: p.name,
+        role: p.role,
+      })),
       scenarioStart: startCard?.title || 'Starting situation',
       scenarioEnd: endCard?.title || 'End goal',
       scenarioStartDescription: startCard?.description || '',
       scenarioEndDescription: endCard?.description || '',
+      // Full timeline (begin, actions, inline curveballs, end) preserving order.
+      // Each item carries its note + owner so the PDF reads as a story with
+      // the team's annotations inline.
+      timeline: timelineCards.map((card) => ({
+        type: card.type,
+        title: card.title,
+        description: card.description || '',
+        note: card.note || '',
+        owner: ownerName(card.ownerId),
+        linkedToTitle: card.linkedTo ? gameState.cards[card.linkedTo]?.title : null,
+      })),
       pathway: timelineCards.filter((card) => card.type === 'action'),
       branchActions,
-      curveballs,
-      ripples,
+      curveballs: curveballs.map((card) => ({
+        title: card.title,
+        description: card.description || '',
+        note: card.note || '',
+        owner: ownerName(card.ownerId),
+        pressuresTitle: gameState.cards[card.linkedTo]?.title || null,
+      })),
+      ripples: ripples.map((card) => ({
+        title: card.title,
+        description: card.description || '',
+        note: card.note || '',
+        owner: ownerName(card.ownerId),
+        growsFromTitle: gameState.cards[card.linkedTo]?.title || null,
+      })),
+      manualConnections,
       signals,
       nextSteps,
       notes: PHASES
-        .map((phase) => ({ label: phase.label, note: gameState.phaseNotes[phase.id] || '' }))
+        .map((phase) => ({ id: phase.id, label: phase.label, note: gameState.phaseNotes[phase.id] || '' }))
         .filter((item) => item.note),
       conclusion: {
         mainTension: gameState.phaseNotes.curveball || '',
@@ -973,8 +1419,11 @@ export function initGame(roomCode, options = {}) {
     copyBtn.type = 'button';
     copyBtn.textContent = 'Copy Summary';
     copyBtn.addEventListener('click', async () => {
+      // Same staleness issue as Export PDF — rebuild fresh so anything typed
+      // in the notebook since the panel rendered is included.
+      const freshText = buildStoryText(buildStorySummary());
       try {
-        await navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(freshText);
         copyBtn.textContent = 'Copied';
         window.setTimeout(() => {
           copyBtn.textContent = 'Copy Summary';
@@ -985,20 +1434,18 @@ export function initGame(roomCode, options = {}) {
     });
     actions.appendChild(copyBtn);
 
-    const downloadBtn = document.createElement('button');
-    downloadBtn.className = 'story-panel-btn';
-    downloadBtn.type = 'button';
-    downloadBtn.textContent = 'Download .txt';
-    downloadBtn.addEventListener('click', () => {
-      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${roomCode.toLowerCase()}-futures-summary.txt`;
-      link.click();
-      URL.revokeObjectURL(url);
-    });
-    actions.appendChild(downloadBtn);
+    const exportBtn = document.createElement('button');
+    exportBtn.className = 'story-panel-btn story-panel-btn--primary';
+    exportBtn.type = 'button';
+    exportBtn.textContent = 'Export PDF';
+    exportBtn.title = 'Open the print dialog — choose "Save as PDF" to download a formatted summary';
+    // Build the summary FRESH on click — the panel's `summary` closure variable
+    // is stale as soon as anyone edits a card or notebook field. The notebook
+    // input handler writes directly to gameState.phaseNotes but doesn't
+    // re-render the panel, so capturing summary at render-time loses anything
+    // typed since.
+    exportBtn.addEventListener('click', () => exportSessionAsPDF(buildStorySummary()));
+    actions.appendChild(exportBtn);
 
     panelStoryView.appendChild(actions);
   }
@@ -1287,7 +1734,6 @@ export function initGame(roomCode, options = {}) {
 
     const cards = CARD_LIBRARY[type] || ACTION_CARDS;
     const phaseId = phases.getCurrentPhase().id;
-    const activeParticipant = getActiveParticipant();
 
     // ---- Actions bar (Random Draw + Create Custom) — always at the TOP ----
     const actionsBar = document.createElement('div');
@@ -1299,7 +1745,8 @@ export function initGame(roomCode, options = {}) {
       dealBtn.className = 'panel-action-btn';
       dealBtn.type = 'button';
       const dealIcon = type === 'curveball' ? '🎲' : '🌱';
-      dealBtn.disabled = activeParticipant?.role !== 'host';
+      const me = gameState.participants.find((p) => p.id === myParticipantId);
+      dealBtn.disabled = me?.role !== 'host';
       dealBtn.textContent = dealBtn.disabled ? 'Host only' : `${dealIcon} Random`;
       dealBtn.title = dealBtn.disabled
         ? 'Only the session host can draw random cards'
@@ -1318,27 +1765,35 @@ export function initGame(roomCode, options = {}) {
     createBtn.type = 'button';
     createBtn.textContent = '+ Custom';
     createBtn.title = `Create a custom ${type} card`;
-    createBtn.addEventListener('click', () => {
-      const title = prompt('Card title:');
-      if (!title) return;
-      const description = prompt('Description (optional):') || '';
+    createBtn.addEventListener('click', async () => {
+      const result = await openCustomCardModal(type);
+      if (!result) return;
       const customCard = {
         type,
-        title,
-        description,
+        title: result.title,
+        description: result.description,
         id: generateCardId(),
         isCustom: true,
       };
-      const panelCard = createPanelCard(customCard);
-      panelCard.addEventListener('pointerdown', (event) => {
-        drag.startPanelDrag(event, panelCard, customCard);
-      });
-      // Insert new custom card right after the actions bar (before library cards)
-      panelCards.insertBefore(panelCard, actionsBar.nextSibling);
+      // Persist into shared state so collaborators see it before placement.
+      gameState.customCards[customCard.id] = customCard;
+      emitStateChange();
+      // Re-render the panel so the new card appears in its tab order alongside library cards.
+      populatePanel(type);
     });
     actionsBar.appendChild(createBtn);
 
     panelCards.appendChild(actionsBar);
+
+    // ---- Custom cards (authored in-room, synced via Firestore) ----
+    const customForType = Object.values(gameState.customCards).filter((c) => c.type === type);
+    customForType.forEach((cardData) => {
+      const panelCard = createPanelCard(cardData);
+      panelCard.addEventListener('pointerdown', (event) => {
+        drag.startPanelDrag(event, panelCard, cardData);
+      });
+      panelCards.appendChild(panelCard);
+    });
 
     // ---- Library cards ----
     cards.forEach((cardData) => {
@@ -1349,7 +1804,11 @@ export function initGame(roomCode, options = {}) {
       panelCards.appendChild(panelCard);
     });
 
-    updatePanelCount(`${cards.length} ${type} cards available`);
+    const customCount = customForType.length;
+    const summary = customCount > 0
+      ? `${cards.length} ${type} cards · ${customCount} custom`
+      : `${cards.length} ${type} cards available`;
+    updatePanelCount(summary);
   }
 
   function placeCard(cardData, x, y, options = {}) {
@@ -1374,19 +1833,28 @@ export function initGame(roomCode, options = {}) {
       isEditable: cardData.isEditable !== false,
       ownerId: cardData.ownerId || activeParticipant?.id || null,
       updatedBy: cardData.updatedBy || activeParticipant?.id || null,
-      lane: cardData.lane || ((type === 'action' && phases.getCurrentPhase().id !== 'planning') ? 'response' : 'timeline'),
+      // Default lanes:
+      //   - actions:    'timeline' (always; we no longer auto-spawn responses)
+      //   - curveballs: undefined  (only inline when quickPlaceCard sets lane='timeline')
+      //   - ripples:    undefined  (always floating side-branches)
+      lane: cardData.lane || (type === 'action' ? 'timeline' : undefined),
       position: { x, y },
     };
 
-    if (cardState.type === 'action' && cardState.lane === 'response' && !cardState.linkedTo) {
-      cardState.linkedTo = getResponseAnchor(cardState.position, cardId)?.cardId || null;
-    }
-
-    if (isLinkedCard(type) && !cardState.linkedTo) {
+    // Ripples (and any legacy floating curveballs without lane='timeline')
+    // need a default linkedTo so they have something to anchor to.
+    if (isLinkedCard(type) && cardState.lane !== 'timeline' && !cardState.linkedTo) {
       cardState.linkedTo = findNearestLinkTarget(type, cardState.position, cardId)?.cardId || null;
     }
 
     gameState.cards[cardId] = cardState;
+
+    // If this came from the custom-card tray, remove it from there so it doesn't
+    // appear in the panel as both "available" and "on the board".
+    if (cardData.id && gameState.customCards[cardData.id]) {
+      delete gameState.customCards[cardData.id];
+    }
+
     renderCard(cardState);
     relayoutBoard(true); // preserve drop position — no forced grid snap
     updateEmptyPrompt();
@@ -1408,11 +1876,10 @@ export function initGame(roomCode, options = {}) {
     cardState.position = { x, y };
     cardState.updatedBy = getActiveParticipant()?.id || cardState.updatedBy;
 
-    if (cardState.type === 'action' && cardState.lane === 'response') {
-      cardState.linkedTo = getResponseAnchor(cardState.position, cardId)?.cardId || cardState.linkedTo;
-    }
-
-    if (isLinkedCard(cardState.type)) {
+    // Re-anchor floating cards (ripples, legacy non-inline curveballs) to
+    // their nearest link target after the user drags them. Inline timeline
+    // citizens (lane === 'timeline') keep their explicit linkedTo unchanged.
+    if (isLinkedCard(cardState.type) && cardState.lane !== 'timeline') {
       cardState.linkedTo = findNearestLinkTarget(cardState.type, cardState.position, cardId)?.cardId || null;
     }
 
@@ -1426,29 +1893,52 @@ export function initGame(roomCode, options = {}) {
     let placedId = null;
 
     if (type === 'action') {
-      if (phases.getCurrentPhase().id !== 'planning') {
-        const linkedCard = getResponseAnchor();
-        if (linkedCard) {
-          const nextPos = getBranchActionPosition(linkedCard);
-          placedId = placeCard({ ...cardData, lane: 'response', linkedTo: linkedCard.cardId }, nextPos.x, nextPos.y);
-        }
+      // Actions always join the timeline now — even during the curveball phase.
+      // The previous "spawn a response side-branch" behaviour was confusing;
+      // any action placed AFTER a curveball reads as the team's response by
+      // virtue of timeline position.
+      const timelineWithoutEnd = timelineCards.filter((c) => c.type !== 'end');
+      const nextPos = timeline.getNextFreePosition(timelineWithoutEnd);
+
+      const endCard = findScenarioCard('end');
+      if (endCard && nextPos.x >= endCard.position.x - timeline.CARD_GAP) {
+        endCard.position.x = nextPos.x + timeline.CARD_WIDTH + timeline.CARD_GAP;
+        renderCard(endCard);
       }
 
-      if (!placedId) {
-        // Exclude the END card so new action cards insert BEFORE it, not after.
-        const timelineWithoutEnd = timelineCards.filter((c) => c.type !== 'end');
-        const nextPos = timeline.getNextFreePosition(timelineWithoutEnd);
+      placedId = placeCard({ ...cardData, lane: 'timeline' }, nextPos.x, nextPos.y);
+    } else if (type === 'curveball') {
+      // Curveballs are inline timeline events. They insert AFTER their target
+      // action — the user's mental model is "action A happened, then the
+      // budget cuts hit, then we did action B". Any later actions, the end
+      // goal, and any other curveballs all shift right to make room.
+      const target = getDefaultAnchorFor('curveball'); // rightmost action by default
+      const linkedTo = target?.cardId || null;
+      const insertX = target
+        ? target.position.x + timeline.CARD_WIDTH + timeline.CARD_GAP
+        : timeline.TIMELINE_START_X + timeline.CARD_WIDTH + timeline.CARD_GAP;
 
-        // If the computed position would land on or past the END card, push END right.
-        const endCard = findScenarioCard('end');
-        if (endCard && nextPos.x >= endCard.position.x - timeline.CARD_GAP) {
-          endCard.position.x = nextPos.x + timeline.CARD_WIDTH + timeline.CARD_GAP;
-          renderCard(endCard);
+      // Push everything at-or-past insertX one card-width to the right.
+      // We touch only timeline citizens so floating ripples don't lurch.
+      timelineCards.forEach((c) => {
+        if (c.position.x >= insertX) {
+          c.position.x += timeline.CARD_WIDTH + timeline.CARD_GAP;
+          renderCard(c);
         }
+      });
 
-        placedId = placeCard({ ...cardData, lane: 'timeline' }, nextPos.x, nextPos.y);
-      }
+      placedId = placeCard(
+        { ...cardData, lane: 'timeline', linkedTo },
+        insertX,
+        timeline.TIMELINE_Y - timeline.CARD_HEIGHT / 2,
+      );
+
+      // Snap everything to even spacing — handles edge cases (collisions,
+      // multiple curveballs already inline, manual drag history).
+      relayoutBoard(false);
     } else {
+      // Ripple — stays as a floating side-branch. User can also draw manual
+      // links (Link Cards button) to attach actions to ripples or vice versa.
       const linkedCard = getDefaultAnchorFor(type);
       if (!linkedCard) {
         placedId = placeCard(cardData, timeline.TIMELINE_START_X + timeline.CARD_WIDTH * 2, timeline.TIMELINE_Y - timeline.CARD_HEIGHT - 60);
@@ -1475,6 +1965,12 @@ export function initGame(roomCode, options = {}) {
     const cardState = gameState.cards[cardId];
     if (!cardState || !isRemovableCard(cardState)) return;
 
+    // If we're removing an inline timeline citizen (action or inline curveball)
+    // we want the timeline to close the gap and re-tidy. Floating cards keep
+    // their neighbours' positions intact.
+    const wasTimelineCitizen = cardState.lane === 'timeline'
+      && (cardState.type === 'action' || cardState.type === 'curveball');
+
     delete gameState.cards[cardId];
     const cardEl = surface.querySelector(`[data-card-id="${cardId}"]`);
     if (cardEl) {
@@ -1492,7 +1988,11 @@ export function initGame(roomCode, options = {}) {
       selectedCardId = null;
     }
 
-    relayoutBoard(true); // preserve other card positions when one is removed
+    // skipTimelineLayout = false → snap timeline back to even spacing,
+    // closing whatever gap the removed card left. We only do this when the
+    // removed card was on the timeline; removing a floating ripple shouldn't
+    // disturb timeline positions the user may have manually arranged.
+    relayoutBoard(!wasTimelineCitizen);
     updateEmptyPrompt();
     renderCardEditor();
     emitStateChange();
@@ -1564,13 +2064,26 @@ export function initGame(roomCode, options = {}) {
   }
 
   function getTimelineCards() {
+    // Citizens of the main left-to-right pathway:
+    //   begin → actions (lane !== 'response') → curveballs (lane === 'timeline')
+    //         → end
+    // Curveballs are timeline citizens iff they were placed during gameplay
+    // (lane: 'timeline') — drag-positioned curveballs from older state with no
+    // lane stay as floating attachments until re-placed.
+    // Within the middle band, sort by position.x so the user's manual reorders
+    // (drag) are preserved rather than re-imposing a fixed type ordering.
     const cards = Object.values(gameState.cards);
-    const beginning = cards.filter((card) => card.type === 'beginning').sort((a, b) => a.position.x - b.position.x);
-    const actions = cards
-      .filter((card) => card.type === 'action' && card.lane !== 'response')
+    const beginning = cards.filter((card) => card.type === 'beginning')
       .sort((a, b) => a.position.x - b.position.x);
-    const end = cards.filter((card) => card.type === 'end').sort((a, b) => a.position.x - b.position.x);
-    return [...beginning, ...actions, ...end];
+    const middle = cards
+      .filter((card) =>
+        (card.type === 'action' && card.lane !== 'response')
+        || (card.type === 'curveball' && card.lane === 'timeline')
+      )
+      .sort((a, b) => a.position.x - b.position.x);
+    const end = cards.filter((card) => card.type === 'end')
+      .sort((a, b) => a.position.x - b.position.x);
+    return [...beginning, ...middle, ...end];
   }
 
   function getDefaultAnchorFor(type) {
@@ -2094,11 +2607,13 @@ export function initGame(roomCode, options = {}) {
       roomCode: gameState.roomCode,
       phase: gameState.phase,
       cards: cloneCards(gameState.cards),
+      customCards: { ...gameState.customCards },
       connections: [...gameState.connections],
       manualConnections: [...gameState.manualConnections],
       phaseNotes: { ...gameState.phaseNotes },
       participants: gameState.participants.map((participant) => ({ ...participant })),
       activeParticipantId: gameState.activeParticipantId,
+      framing: { ...gameState.framing },
       lastPanelType: activePanelType,
     };
   }
@@ -2112,47 +2627,97 @@ export function initGame(roomCode, options = {}) {
    * Updates gameState in-place and re-renders the board WITHOUT resetting zoom
    * or pan position — preserving each observer's current view.
    *
-   * Participants are NOT synced — each client owns its own local participant
-   * list. Only shared gameplay data (cards, phase, connections, phaseNotes) is
-   * applied here.
+   * Participants ARE synced (sync.js writes them with the rest of state).
+   * Heartbeats themselves are local-only to avoid racing against phase changes,
+   * so a tab's lastSeenAt only refreshes remotely when its user does something
+   * that triggers emitStateChange (place card, edit, phase advance, etc.).
    *
    * @param {object} snapshot - Partial game snapshot from sync.js (no participants).
    */
   function syncRemoteState(snapshot) {
     if (!snapshot) return;
 
+    // Diff what actually changed BEFORE we mutate gameState. Heartbeats from
+    // other tabs arrive every 20s and only touch participants[].lastSeenAt —
+    // re-rendering the whole board for those caused a flash every 20s.
     const phaseChanged = snapshot.phase && snapshot.phase !== gameState.phase;
+    const cardsChanged = 'cards' in snapshot
+      && JSON.stringify(snapshot.cards) !== JSON.stringify(gameState.cards);
+    const customCardsChanged = 'customCards' in snapshot
+      && JSON.stringify(snapshot.customCards || {}) !== JSON.stringify(gameState.customCards);
+    const connectionsChanged = 'connections' in snapshot
+      && JSON.stringify(snapshot.connections) !== JSON.stringify(gameState.connections);
+    const manualConnectionsChanged = 'manualConnections' in snapshot
+      && JSON.stringify(snapshot.manualConnections) !== JSON.stringify(gameState.manualConnections);
+    const phaseNotesChanged = 'phaseNotes' in snapshot
+      && JSON.stringify(snapshot.phaseNotes) !== JSON.stringify(gameState.phaseNotes);
+    const framingChanged = 'framing' in snapshot
+      && JSON.stringify(snapshot.framing) !== JSON.stringify(gameState.framing);
+
+    const boardChanged = cardsChanged || connectionsChanged || manualConnectionsChanged;
+    const panelChanged = boardChanged || customCardsChanged || phaseNotesChanged || framingChanged;
 
     // Apply shared state into the live gameState object.
-    if (snapshot.cards) gameState.cards = cloneCards(snapshot.cards);
-    if (snapshot.connections) gameState.connections = [...snapshot.connections];
-    if (snapshot.manualConnections) gameState.manualConnections = [...snapshot.manualConnections];
-    if (snapshot.phaseNotes) gameState.phaseNotes = { ...snapshot.phaseNotes };
+    if (cardsChanged) gameState.cards = cloneCards(snapshot.cards);
+    if (customCardsChanged) gameState.customCards = { ...(snapshot.customCards || {}) };
+    if (connectionsChanged) gameState.connections = [...snapshot.connections];
+    if (manualConnectionsChanged) gameState.manualConnections = [...snapshot.manualConnections];
+    if (phaseNotesChanged) gameState.phaseNotes = { ...snapshot.phaseNotes };
+    if (framingChanged) {
+      gameState.framing = { ...emptyFraming(), ...snapshot.framing };
+      renderFramingStrip();
+    }
+    if (snapshot.participants) {
+      // Merge by id so my own freshly-set lastSeenAt isn't clobbered by a
+      // slightly older remote write that crossed paths with my heartbeat.
+      const remote = snapshot.participants;
+      const merged = remote.map((p) => {
+        if (p.id === myParticipantId) {
+          const local = gameState.participants.find((lp) => lp.id === myParticipantId);
+          return {
+            ...p,
+            lastSeenAt: Math.max(p.lastSeenAt || 0, local?.lastSeenAt || 0),
+          };
+        }
+        return { ...p };
+      });
+      gameState.participants.forEach((local) => {
+        if (!merged.some((p) => p.id === local.id)) merged.push({ ...local });
+      });
+      gameState.participants = merged;
+    }
 
-    // Phase transitions go through the phase manager so all phase UI updates
+    // Phase transition goes through the phase manager so all phase UI updates
     // (topbar label, progress pips, tab availability) fire correctly.
-    // We suppress the phase announcement overlay — it would be jarring for
-    // observers to see a full-screen overlay for another player's action.
     if (phaseChanged) {
-      isInitializing = true; // temporarily suppress the overlay
+      isInitializing = true;
       phases.setPhase(snapshot.phase);
       isInitializing = false;
     }
 
-    // Clear all existing board card DOM elements and re-render from scratch.
-    // This is simpler and more reliable than diffing the DOM.
-    document.querySelectorAll('.board-card').forEach((el) => el.remove());
-    hydrateRelationships();
-    renderExistingCards();
-    relayoutBoard(true);          // skipTimelineLayout=true: keep free card positions
-    updateConnections();
-    updateEmptyPrompt();
+    // Heavy DOM teardown only when the BOARD CONTENT actually changed.
+    // Phase-only changes don't need the cards wiped + re-rendered — phase
+    // changes don't move cards, and onPhaseChange already updates the panel,
+    // topbar, and tab availability. Tearing the board down for phase-only
+    // changes was the residual flash on observers when one tab advanced.
+    if (boardChanged) {
+      document.querySelectorAll('.board-card').forEach((el) => el.remove());
+      hydrateRelationships();
+      renderExistingCards();
+      relayoutBoard(true);
+      updateConnections();
+      updateEmptyPrompt();
+    }
 
-    // Refresh panel and header without triggering another state emit.
-    if (!phaseChanged) {
+    // Panel updates whenever anything the panel projects from has changed
+    // (cards, customCards, phaseNotes, framing). Phase-change path already
+    // re-renders the panel via setPhase, so skip the duplicate.
+    if (panelChanged && !phaseChanged) {
       syncPanelMode();
       renderPanelHeader();
     }
+
+    // Participants are cheap — always re-render so online dots track presence.
     renderParticipants();
   }
 
@@ -2256,6 +2821,157 @@ export function initGame(roomCode, options = {}) {
 
   // ================================================
 
+  /**
+   * Open the in-app custom-card modal and resolve with `{ title, description }`
+   * on Create, or `null` on Cancel/Escape/backdrop. The modal listens are
+   * attached fresh per open and torn down on close so we don't leak handlers.
+   */
+  function openCustomCardModal(type) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('custom-card-modal');
+      const card = modal?.querySelector('.app-modal-card');
+      const titleInput = document.getElementById('custom-card-title-input');
+      const descInput = document.getElementById('custom-card-desc-input');
+      const cancelBtn = document.getElementById('custom-card-cancel-btn');
+      const createBtnEl = document.getElementById('custom-card-create-btn');
+      const chip = document.getElementById('custom-card-type-chip');
+
+      if (!modal || !titleInput || !descInput || !cancelBtn || !createBtnEl) {
+        // Modal missing from the page — fall back to the native prompt rather than
+        // silently swallowing the click.
+        const fallbackTitle = window.prompt('Card title:');
+        if (!fallbackTitle) return resolve(null);
+        return resolve({
+          title: fallbackTitle,
+          description: window.prompt('Description (optional):') || '',
+        });
+      }
+
+      // Reset form state and tint the modal to the card's type colour.
+      titleInput.value = '';
+      descInput.value = '';
+      if (card) card.dataset.cardType = type;
+      if (chip) chip.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+
+      function close(result) {
+        modal.setAttribute('hidden', '');
+        cancelBtn.removeEventListener('click', onCancel);
+        createBtnEl.removeEventListener('click', onCreate);
+        modal.removeEventListener('click', onBackdropClick);
+        document.removeEventListener('keydown', onKeydown);
+        resolve(result);
+      }
+      function onCancel() { close(null); }
+      function onCreate() {
+        const title = titleInput.value.trim();
+        if (!title) {
+          titleInput.focus();
+          return;
+        }
+        close({ title, description: descInput.value.trim() });
+      }
+      function onBackdropClick(e) {
+        if (e.target === modal) onCancel();
+      }
+      function onKeydown(e) {
+        if (e.key === 'Escape') onCancel();
+        else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onCreate();
+      }
+
+      cancelBtn.addEventListener('click', onCancel);
+      createBtnEl.addEventListener('click', onCreate);
+      modal.addEventListener('click', onBackdropClick);
+      document.addEventListener('keydown', onKeydown);
+
+      modal.removeAttribute('hidden');
+      // Defer focus to the next frame so the modal is fully visible first.
+      requestAnimationFrame(() => titleInput.focus());
+    });
+  }
+
+  /**
+   * Open the in-game framing-edit modal. Lets the user retouch the composed
+   * question and goal as free text — useful for fixing slot grammar (e.g.
+   * "by 5 years" vs "in 5 years") without sending them back to /framing.
+   *
+   * Slot data and shape are preserved underneath; only composedQuestion and
+   * goal are overwritten on save.
+   */
+  function openFramingEditModal() {
+    const modal = document.getElementById('framing-edit-modal');
+    const questionInput = document.getElementById('framing-edit-question-input');
+    const goalInput = document.getElementById('framing-edit-goal-input');
+    const cancelBtn = document.getElementById('framing-edit-cancel-btn');
+    const saveBtn = document.getElementById('framing-edit-save-btn');
+    if (!modal || !questionInput || !goalInput || !cancelBtn || !saveBtn) return;
+
+    const f = gameState.framing || {};
+    questionInput.value = f.composedQuestion || '';
+    goalInput.value = f.goal || '';
+
+    function close() {
+      modal.setAttribute('hidden', '');
+      cancelBtn.removeEventListener('click', onCancel);
+      saveBtn.removeEventListener('click', onSave);
+      modal.removeEventListener('click', onBackdrop);
+      document.removeEventListener('keydown', onKeydown);
+    }
+    function onCancel() { close(); }
+    function onSave() {
+      const nextQuestion = questionInput.value.trim();
+      const nextGoal = goalInput.value.trim();
+      if (!nextQuestion) { questionInput.focus(); return; }
+
+      gameState.framing = {
+        ...gameState.framing,
+        composedQuestion: nextQuestion,
+        goal: nextGoal,
+        // Mark completed=true defensively — if a late joiner edits framing
+        // before the original framer hit Start, we still want the strip shown.
+        completed: true,
+      };
+      renderFramingStrip();
+
+      // Mirror to the begin/end cards. setupBeginEndCards uses these formats:
+      //   begin: title = tidied(slots.presentState||slots.system),
+      //          description = `Question: ${composedQuestion}`
+      //   end:   title = tidied(goal), description = goal
+      // We update only the fields driven by the question/goal — the begin
+      // title is derived from a slot we're not editing here.
+      const tidyTitle = (text, limit = 60) => {
+        const trimmed = (text || '').trim();
+        if (trimmed.length <= limit) return trimmed;
+        const slice = trimmed.slice(0, limit);
+        const lastSpace = slice.lastIndexOf(' ');
+        return (lastSpace > limit * 0.6 ? slice.slice(0, lastSpace) : slice) + '…';
+      };
+      const beginCard = findScenarioCard('beginning');
+      const endCard = findScenarioCard('end');
+      if (beginCard) beginCard.description = `Question: ${nextQuestion}`;
+      if (endCard && nextGoal) {
+        endCard.title = tidyTitle(nextGoal);
+        endCard.description = nextGoal;
+      }
+      [beginCard, endCard].forEach((c) => c && renderCard(c));
+
+      emitStateChange();
+      close();
+    }
+    function onBackdrop(e) { if (e.target === modal) onCancel(); }
+    function onKeydown(e) {
+      if (e.key === 'Escape') onCancel();
+      else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onSave();
+    }
+
+    cancelBtn.addEventListener('click', onCancel);
+    saveBtn.addEventListener('click', onSave);
+    modal.addEventListener('click', onBackdrop);
+    document.addEventListener('keydown', onKeydown);
+
+    modal.removeAttribute('hidden');
+    requestAnimationFrame(() => questionInput.focus());
+  }
+
   function emitStateChange() {
     if (panelMode === 'story') {
       renderStoryPanel();
@@ -2264,12 +2980,33 @@ export function initGame(roomCode, options = {}) {
   }
 
   function setupBeginEndCards() {
+    const f = gameState.framing || {};
+    const hasFraming = f.completed && f.composedQuestion;
+
+    // Truncate at a word boundary near the limit so card titles never get cut mid-word.
+    const tidyTitle = (text, limit) => {
+      const trimmed = (text || '').trim();
+      if (trimmed.length <= limit) return trimmed;
+      const slice = trimmed.slice(0, limit);
+      const lastSpace = slice.lastIndexOf(' ');
+      return (lastSpace > limit * 0.6 ? slice.slice(0, lastSpace) : slice) + '…';
+    };
+
     if (!findScenarioCard('beginning')) {
+      // Title for the start card: prefer the "system" or "presentState" slot
+      // when framing is filled in, else fall back to the generic placeholder.
+      const startTitle = hasFraming
+        ? tidyTitle(f.slots?.presentState || f.slots?.system, 60) || 'Starting Situation'
+        : 'Starting Situation';
+      const startDesc = hasFraming
+        ? `Question: ${f.composedQuestion}`
+        : 'Define where you are now';
+
       placeCard(
         {
           type: 'beginning',
-          title: 'Starting Situation',
-          description: 'Define where you are now',
+          title: startTitle,
+          description: startDesc,
           id: 'BEGIN',
         },
         timeline.TIMELINE_START_X,
@@ -2279,11 +3016,18 @@ export function initGame(roomCode, options = {}) {
     }
 
     if (!findScenarioCard('end')) {
+      const endTitle = hasFraming && f.goal
+        ? tidyTitle(f.goal, 60)
+        : 'End Goal';
+      const endDesc = hasFraming && f.goal
+        ? f.goal
+        : 'Define where you want to be';
+
       placeCard(
         {
           type: 'end',
-          title: 'End Goal',
-          description: 'Define where you want to be',
+          title: endTitle,
+          description: endDesc,
           id: 'END',
         },
         timeline.TIMELINE_START_X + 5 * (timeline.CARD_WIDTH + timeline.CARD_GAP),
@@ -2320,10 +3064,33 @@ export function initGame(roomCode, options = {}) {
   updateEmptyPrompt();
   renderCardEditor();
   syncPanelMode();
+  renderFramingStrip();
   emitStateChange();
 
   // All initial setup is done — enable phase announcements for real transitions
   isInitializing = false;
+
+  /**
+   * Refresh this tab's `lastSeenAt` and emit state. Called on a setInterval
+   * by the boot script so other clients can render us as online.
+   * Also re-renders the rail so our own avatar's online dot stays accurate.
+   */
+  function heartbeat() {
+    // Local-only presence tick. We deliberately DO NOT call emitStateChange()
+    // here, even though participants are part of the synced state — emitting
+    // a 20s-cadence write of the full state was racing against in-flight
+    // phase advances on other tabs (Tab B's heartbeat landing AFTER Tab A
+    // advanced to curveball would clobber Tab A's phase back to planning).
+    //
+    // Trade-off: remote tabs see slightly stale lastSeenAt for purely-idle
+    // observers. In active workshops, ANY content change (card placement,
+    // edit, phase advance) emits state and refreshes participants too, so
+    // the online dots stay accurate for anyone actually playing.
+    const me = gameState.participants.find((p) => p.id === myParticipantId);
+    if (!me) return;
+    me.lastSeenAt = Date.now();
+    renderParticipants();
+  }
 
   return {
     board,
@@ -2335,5 +3102,6 @@ export function initGame(roomCode, options = {}) {
     getState: () => gameState,
     /** Apply a state snapshot from another client without resetting zoom. */
     syncRemoteState,
+    heartbeat,
   };
 }

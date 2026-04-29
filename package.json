@@ -3,10 +3,13 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
+    "predev": "node scripts/build-card-library.mjs",
     "dev": "astro dev",
+    "prebuild": "node scripts/build-card-library.mjs",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "cards:build": "node scripts/build-card-library.mjs"
   },
   "dependencies": {
     "astro": "^5.17.1",
