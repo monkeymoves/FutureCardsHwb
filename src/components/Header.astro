@@ -14,7 +14,7 @@ const { currentPage = '' } = Astro.props;
     </a>
     <nav class="nav">
       <a href="/" class:list={['nav-link', { active: currentPage === 'home' }]}>Home</a>
-      <a href="/game" class:list={['nav-link', { active: currentPage === 'play' || currentPage === 'lobby' }]}>Play</a>
+      <a href="/lobby" class:list={['nav-link', { active: currentPage === 'play' || currentPage === 'lobby' }]}>Play</a>
       <a href="/about" class:list={['nav-link', { active: currentPage === 'about' }]}>Rules</a>
     </nav>
   </div>
