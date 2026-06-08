@@ -19,6 +19,19 @@ ACT-17,action,Align With Well-being Objectives,Map proposed actions against the 
 ACT-18,action,Conduct Equality Impact Assessment,Assess how proposals affect different groups and ensure equity considerations.
 ACT-19,action,Submit Report to Board,Present findings and recommendations to the governing board for approval.
 ACT-20,action,Scale Up Delivery,Expand the programme or service from pilot to full-scale operation.
+ACT-21,action,Prepare Budget,Cost out the work and set out how money will be allocated across the activities.
+ACT-22,action,Prepare Outputs,"Produce the reports, materials, or deliverables the work is meant to generate."
+ACT-23,action,Make Time for Reflection,Pause to review what has been learned and adjust the approach before pressing on.
+ACT-24,action,Stand Back,"Deliberately step back to observe, let others lead, and avoid over-steering the process."
+ACT-25,action,Run a Networking Event,"Host an event to connect people, build relationships, and surface new collaborations."
+ACT-26,action,Desk-based Research,"Carry out background research using existing reports, data, and online sources."
+ACT-27,action,Identify Target Groups,"Work out which people, communities, or sectors the work most needs to reach."
+ACT-28,action,Pivot to a New Priority,Shift focus and resources towards a different priority as circumstances change.
+ACT-29,action,Engage a Blocker,Reach out to someone obstructing progress to understand and address their concerns.
+ACT-30,action,Map Stakeholders,"Identify who has interest or influence, and how they relate to the work and each other."
+ACT-31,action,Design the Methodology,"Decide how the work will be done: the methods, sequence, and tools you will use."
+ACT-32,action,Talk to Leaders,Engage senior leaders and decision-makers to secure buy-in and direction.
+ACT-33,action,Plan Foresight Activities,Design the futures and foresight sessions that will explore long-term change.
 CRV-01,curveball,Budget Cuts Announced,A significant reduction in available funding requires you to reprioritise and scale back plans.
 CRV-02,curveball,Key Staff Member Leaves,A critical person driving the work moves on. Knowledge and momentum are at risk.
 CRV-03,curveball,Election Changes Priorities,A change in political leadership shifts the policy agenda. Your project may lose or gain support.
@@ -31,6 +44,15 @@ CRV-09,curveball,Demand Surge,An unexpected spike in demand for the service over
 CRV-10,curveball,Media Scrutiny,Negative media coverage puts the project under intense public and political pressure.
 CRV-11,curveball,Supply Chain Disruption,"Materials, technology, or services you depend on become unavailable or delayed."
 CRV-12,curveball,Pandemic or Public Health Emergency,A health crisis redirects all attention and resources to immediate public health response.
+CRV-13,curveball,Something Else Becomes a Higher Priority,"A competing issue jumps the queue, pulling attention and resources away from your work."
+CRV-14,curveball,Struggle to Access Funding,"Expected funding is hard to unlock or apply for, stalling progress before it starts."
+CRV-15,curveball,Outputs Are Low Quality,"The work produced falls short of the standard needed, undermining confidence and impact."
+CRV-16,curveball,A Decision-maker Becomes a Blocker,Someone with authority starts obstructing the work rather than enabling it.
+CRV-17,curveball,Assumptions Made About Participants,Pre-conceived assumptions about who participants are lead to poor design and exclusion.
+CRV-18,curveball,Participants Distrust the Process,"Participants lose trust in the organisers or the process, and engagement falters."
+CRV-19,curveball,No One Turns Up,"Despite the planning, attendance is far lower than expected and momentum stalls."
+CRV-20,curveball,Conflict Between Participants,Tension or disagreement between participants disrupts the session and sours relationships.
+CRV-21,curveball,Political Breakdown,A breakdown in political support or relationships removes the backing the work relied on.
 RPL-01,ripple,Improved Public Trust,Transparent and effective action strengthens community confidence in your organisation.
 RPL-02,ripple,Cross-departmental Collaboration,The work breaks down silos and fosters collaboration across teams and organisations.
 RPL-03,ripple,Policy Cited in National Guidance,Your approach is recognised as best practice and referenced in national-level documents.
@@ -43,3 +65,13 @@ RPL-09,ripple,Environmental Co-benefits,Actions deliver additional environmental
 RPL-10,ripple,Political Capital Gained,Successful delivery builds political support for further ambitious action.
 RPL-11,ripple,Capacity Strain,The demands of delivery stretch organisational capacity and create fatigue.
 RPL-12,ripple,New Partnership Opportunity,The work attracts interest from a new organisation wanting to collaborate.
+RPL-13,ripple,Increased Local Knowledge,People gain a deeper local knowledge and understanding that informs better decisions.
+RPL-14,ripple,Futures Thinking Takes Hold,"Teams increasingly use futures thinking, building it into how they plan and decide."
+RPL-15,ripple,Future-regarding Policies,Policies start to account for long-term change and the needs of future generations.
+RPL-16,ripple,Participants Better Connected,Participants build lasting connections with each other beyond the immediate work.
+RPL-17,ripple,Participants Attend Other Events,"Participants stay engaged, attending other events the organisers run."
+RPL-18,ripple,Trusting Relationships Form,"Genuine trust develops between people, making future collaboration easier."
+RPL-19,ripple,Participants Gain Power and Influence,"Participants gain confidence, voice, and influence over decisions that affect them."
+RPL-20,ripple,New Risks and Opportunities Identified,The work surfaces new risks and opportunities that were not visible before.
+RPL-21,ripple,Barriers to Participation Understood,Organisers gain a clearer understanding of what stops people taking part.
+RPL-22,ripple,Increased Demand on the Hwb,An unintended consequence: success drives up demand on the Hwb's time and resources.
