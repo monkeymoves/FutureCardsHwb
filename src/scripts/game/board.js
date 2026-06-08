@@ -44,6 +44,11 @@ export function createBoard(viewport, surface) {
 
   // ---- Scroll wheel zoom (focal-point) ----
   function handleWheel(e) {
+    // The card panel is a DOM child of the viewport, so its wheel events bubble
+    // up to here. Let them scroll the panel natively instead of zooming the
+    // board — otherwise the deck list can't be scrolled with a wheel/trackpad.
+    if (e.target.closest && e.target.closest('#card-panel')) return;
+
     e.preventDefault();
 
     const rect = viewport.getBoundingClientRect();
