@@ -891,25 +891,33 @@ import Footer from '../components/Footer.astro';
       updateStartEnabled();
     });
 
-    startBtn.addEventListener('click', async () => {
+    startBtn.addEventListener('click', () => {
       local.completed = true;
       setStatus('Starting…', 'ok');
-      if (firebaseReady) {
-        try {
-          await setDoc(
-            roomRef,
-            { roomId: roomCode, state: { framing: local } },
-            { merge: true }
-          );
-        } catch (err) {
-          console.error('[framing] Final write failed:', err);
-        }
-      }
+
+      // Persist locally FIRST — this is synchronous and reliable, so the game
+      // always picks up the framing on this device even when the network write
+      // is slow or blocked (e.g. a locked-down work network where Firestore is
+      // unreachable). Previously we awaited the Firestore write before saving
+      // and navigating, so a hanging setDoc trapped the facilitator on this
+      // screen and the framing never got saved at all.
       try {
         const storageKey = `futures:room:${roomCode}`;
         const existing = JSON.parse(safeStorageGet(storageKey) || '{}');
         safeStorageSet(storageKey, JSON.stringify({ ...existing, framing: local }));
       } catch {}
+
+      // Fire the Firestore write but DON'T block navigation on it. It still
+      // syncs the framing to other devices when it lands; if it never lands,
+      // the local copy above already carries the facilitator into the game.
+      if (firebaseReady) {
+        setDoc(
+          roomRef,
+          { roomId: roomCode, state: { framing: local } },
+          { merge: true }
+        ).catch((err) => console.error('[framing] Final write failed:', err));
+      }
+
       gotoGame(roomCode, playerName);
     });
 

@@ -354,6 +354,23 @@ import GameLayout from '../layouts/GameLayout.astro';
       } catch { /* ignore corrupt storage */ }
     }
 
+    // The framing screen writes the just-set framing to localStorage
+    // synchronously. A remote state resolved above can be stale (slow write) or
+    // belong to a reused room and lack that framing — in which case the remote
+    // state shadows the fresh local one. If our local copy has a completed
+    // framing the remote one doesn't, prefer the local framing so it always
+    // pulls through on this device.
+    if (!isDemoRoom && initialState) {
+      try {
+        const raw = safeStorageGet(storageKey);
+        const localFraming = raw ? JSON.parse(raw)?.framing : null;
+        const remoteFraming = initialState.framing;
+        if (localFraming?.completed && localFraming?.composedQuestion && !remoteFraming?.completed) {
+          initialState = { ...initialState, framing: localFraming };
+        }
+      } catch { /* ignore corrupt storage */ }
+    }
+
     if (!initialState && isDemoRoom) {
       initialState = buildDemoState(roomCode);
     }
