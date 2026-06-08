@@ -183,6 +183,8 @@ export function createPanelCard(cardData) {
   card.classList.add('panel-card', 'card--mini');
   card.dataset.type = type;
   card.dataset.libraryId = id;
+  // Lowercased title + description, used by the deck search box to filter.
+  card.dataset.search = `${title} ${description || ''}`.toLowerCase();
   card.draggable = false; // We use pointer events, not HTML drag
 
   return card;

@@ -1735,6 +1735,18 @@ export function initGame(roomCode, options = {}) {
     const cards = CARD_LIBRARY[type] || ACTION_CARDS;
     const phaseId = phases.getCurrentPhase().id;
 
+    // ---- Search / filter box (spans full width, sits above the actions bar) ----
+    const searchWrap = document.createElement('div');
+    searchWrap.className = 'panel-search';
+    const deckSearchInput = document.createElement('input');
+    deckSearchInput.type = 'search';
+    deckSearchInput.className = 'panel-search-input';
+    deckSearchInput.placeholder = `Search ${cards.length} ${type} cards…`;
+    deckSearchInput.setAttribute('aria-label', `Search ${type} cards`);
+    deckSearchInput.autocomplete = 'off';
+    searchWrap.appendChild(deckSearchInput);
+    panelCards.appendChild(searchWrap);
+
     // ---- Actions bar (Random Draw + Create Custom) — always at the TOP ----
     const actionsBar = document.createElement('div');
     actionsBar.className = 'panel-actions-bar';
@@ -1805,10 +1817,32 @@ export function initGame(roomCode, options = {}) {
     });
 
     const customCount = customForType.length;
+    const totalCount = customCount + cards.length;
     const summary = customCount > 0
       ? `${cards.length} ${type} cards · ${customCount} custom`
       : `${cards.length} ${type} cards available`;
     updatePanelCount(summary);
+
+    // Empty-state shown only when an active search matches nothing.
+    const searchEmpty = document.createElement('div');
+    searchEmpty.className = 'panel-empty-state panel-search-empty';
+    searchEmpty.hidden = true;
+    searchEmpty.textContent = 'No cards match your search.';
+    panelCards.appendChild(searchEmpty);
+
+    // Live filter: toggle a class on non-matching cards rather than re-rendering,
+    // so the input keeps focus and the caret while the user types.
+    deckSearchInput.addEventListener('input', () => {
+      const q = deckSearchInput.value.trim().toLowerCase();
+      let shown = 0;
+      panelCards.querySelectorAll('.panel-card').forEach((el) => {
+        const match = !q || (el.dataset.search || '').includes(q);
+        el.classList.toggle('panel-card--filtered', !match);
+        if (match) shown += 1;
+      });
+      searchEmpty.hidden = shown > 0 || q.length === 0;
+      updatePanelCount(q ? `${shown} of ${totalCount} match “${deckSearchInput.value.trim()}”` : summary);
+    });
   }
 
   function placeCard(cardData, x, y, options = {}) {

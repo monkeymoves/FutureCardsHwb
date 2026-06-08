@@ -350,6 +350,12 @@
   min-height: 0; /* required for overflow to work inside a flex column on Firefox */
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* Reserve the scrollbar gutter so the always-visible bar doesn't shift the
+     grid, and so macOS users get a persistent (non-overlay) cue that the deck
+     scrolls — otherwise the hidden overlay bar makes 33 cards look like ~8.
+     NOTE: do NOT set `scrollbar-width` here — doing so makes Chrome ignore the
+     ::-webkit-scrollbar styling below and fall back to the hidden overlay bar. */
+  scrollbar-gutter: stable;
   padding: 14px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -357,12 +363,22 @@
   align-content: start;
 }
 
-/* Scrollbar */
-.panel-cards::-webkit-scrollbar { width: 8px; }
-.panel-cards::-webkit-scrollbar-track { background: transparent; }
+/* Scrollbar — kept always visible (styling ::-webkit-scrollbar opts Chrome out
+   of the fading overlay bar) and given enough contrast to read as a handle. */
+.panel-cards::-webkit-scrollbar { width: 10px; }
+.panel-cards::-webkit-scrollbar-track {
+  background: rgba(214, 211, 209, 0.25);
+  border-radius: 5px;
+}
 .panel-cards::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 4px;
+  background: var(--color-border-strong);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.panel-cards::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+  background-clip: padding-box;
 }
 
 /* ================================================
@@ -396,7 +412,7 @@
 
 .panel-card.card--mini {
   width: 100%;
-  min-height: 188px;
+  min-height: 104px; /* denser than the old 188px so ~8-10 cards fit at once */
 }
 
 .panel-card:hover {
@@ -408,11 +424,52 @@
   box-shadow: var(--shadow-md);
 }
 
-.panel-card.card--mini .card-top    { min-height: 92px; }
-.panel-card.card--mini .card-icon   { width: 36px; height: 36px; }
-.panel-card.card--mini .card-type-label { font-size: 0.54rem; }
-.panel-card.card--mini .card-body   { padding-bottom: 12px; }
-.panel-card.card--mini .card-title  { font-size: 0.82rem; line-height: 1.25; }
+.panel-card.card--mini .card-top    { min-height: 50px; }
+.panel-card.card--mini .card-icon   { width: 30px; height: 30px; }
+.panel-card.card--mini .card-type-label { font-size: 0.5rem; }
+.panel-card.card--mini .card-body   { padding: 8px 10px 10px; }
+.panel-card.card--mini .card-title  { font-size: 0.8rem; line-height: 1.2; }
+
+/* Hidden by the deck search box when a card doesn't match the query.
+   Needs two classes to out-specify the base `.card { display: flex }` rule. */
+.panel-card.panel-card--filtered { display: none; }
+
+/* ================================================
+   Deck search / filter box
+   ================================================ */
+
+.panel-search {
+  grid-column: 1 / -1;
+  padding: 0 0 6px;
+}
+
+.panel-search-input {
+  width: 100%;
+  height: 40px;
+  border-radius: 12px;
+  border: 1.5px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0 14px;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: var(--color-text);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.panel-search-input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 0.85;
+}
+
+.panel-search-input:focus {
+  outline: none;
+  border-color: var(--panel-phase-color, var(--color-blue));
+  box-shadow: 0 0 0 3px var(--color-blue-glow);
+}
+
+.panel-search-empty {
+  grid-column: 1 / -1;
+}
 
 /* ================================================
    Setup phase guide card
@@ -576,11 +633,26 @@
    ================================================ */
 
 .panel-footer {
+  position: relative;
   padding: 14px;
   border-top: 1px solid rgba(214, 211, 209, 0.85);
   background: rgba(255,255,255,0.42);
   display: grid;
   gap: 12px;
+}
+
+/* Soft fade rising off the footer over the bottom of the scrolling deck —
+   a "more cards below" affordance so the list doesn't look like it ends. */
+.panel-footer::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 28px;
+  background: linear-gradient(to top, rgba(249, 246, 240, 0.95), rgba(249, 246, 240, 0));
+  pointer-events: none;
+  z-index: 2;
 }
 
 #card-panel.panel--story .panel-footer {
